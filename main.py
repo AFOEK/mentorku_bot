@@ -2,6 +2,7 @@ import os
 import telebot
 from dotenv import load_dotenv 
 import connector as db
+import inject as qry
 load_dotenv()
 
 token = ''.join(os.environ.get("BOT_TOKEN"))
@@ -16,7 +17,7 @@ def signin(message):
     message_id = message.message_id
     chat_time = message.date
     try:
-        db.sign_in(id_chat=user_id_chat, mgs_id=message_id, chat_tm=chat_time)
+        qry.sign_in(id_chat=user_id_chat, mgs_id=message_id, chat_tm=chat_time)
         bot.reply_to(message, f"{user_name_chat} in at {chat_time}. Sign in succesfully")
     except:
         bot.reply_to(message, "Failed to sign in !")
@@ -29,7 +30,7 @@ def signin(message):
     message_id = message.message_id
     chat_time = message.date
     try:
-        db.sign_out(id_chat=user_id_chat, mgs_id=message_id, chat_tm=chat_time)
+        qry.sign_out(id_chat=user_id_chat, mgs_id=message_id, chat_tm=chat_time)
         bot.reply_to(message, f"{user_name_chat} out at {chat_time}. Sign out succesfully")
     except:
         bot.reply_to(message, "Failed to sign in !")
