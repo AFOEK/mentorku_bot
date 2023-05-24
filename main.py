@@ -7,8 +7,10 @@ load_dotenv()
 
 token = ''.join(os.environ.get("BOT_TOKEN"))
 conn = db.db_connect()
+print("database succesfully connected")
 
 bot = telebot.TeleBot(token)
+print("bot succesfully connected")
 
 @bot.message_handler(commands=['in'])
 def signin(message):
@@ -35,3 +37,11 @@ def signin(message):
     except:
         bot.reply_to(message, "Failed to sign in !")
         print("failed to insert to database !")
+
+@bot.message_handler(commands=['init'])
+def init(message):
+    user_id = message.from_user.id
+    member = message.chat.get_member(user_id)
+
+if __name__ == "__main__":
+    bot.infinity_polling()

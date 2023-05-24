@@ -4,17 +4,31 @@ import os
 load_dotenv()
 
 def db_connect():
-    DB_ADD = ''.join(os.environ.get("DB_ADD")),
-    DB_USER = ''.join(os.environ.get("DB_USER")),
-    DB_PASSWORD = ''.join(os.environ.get("DB_PASSWORD")),
-    DB_NAME = ''.join(os.environ.get("DB_NAME"))
+    try:
+        DB_ADD = os.environ.get("DB_ADD")
+        DB_USER = os.environ.get("DB_USER")
+        DB_PASSWORD = os.environ.get("DB_PASSWORD")
+        DB_NAME = os.environ.get("DB_NAME")
 
+        db = mysql.connector.connect(
+            host = ''.join(DB_ADD),
+            user = ''.join(DB_USER),
+            password = ''.join(DB_PASSWORD),
+            database = ''.join(DB_NAME)
+        )
+    except:
+        DB_ADD_TUNNEL = os.environ.get("DB_ADD_TUNNEL")
+        DB_USER = os.environ.get("DB_USER")
+        DB_PASSWORD = os.environ.get("DB_PASSWORD")
+        DB_NAME = os.environ.get("DB_NAME")
+        DB_PORT_TUNNEL = os.environ.get("DB_PORT_TUNNEL")
 
-    db = mysql.connector.connect(
-        host = DB_ADD,
-        user = DB_USER,
-        password = DB_PASSWORD,
-        database = DB_NAME
-    )
+        db = mysql.connector.connect(
+            host = ''.join(DB_ADD_TUNNEL),
+            user = ''.join(DB_USER),
+            password = ''.join(DB_PASSWORD),
+            database = ''.join(DB_NAME),
+            port = ''.join(DB_PORT_TUNNEL)
+        )
 
     return db
