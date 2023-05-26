@@ -20,12 +20,11 @@ local_timezone = tzlocal.get_localzone()
 def signin(message):
     user_id_chat = message.from_user.id
     user_name_chat = message.from_user.username
-    user_real_name = message.from_user.first_name + ' ' + message.from_user.last_name
     message_id = message.message_id
     chat_time = message.date
     try:
         # qry.sign_in(id_chat=user_id_chat, mgs_id=message_id, chat_tm=chat_time)
-        bot.reply_to(message, f"{user_real_name} sign in at {datetime.datetime.fromtimestamp(chat_time, local_timezone)}. Sign in succesfully")
+        bot.reply_to(message, f"{message.user.full_name} sign in at {datetime.datetime.fromtimestamp(chat_time, local_timezone)}. Sign in succesfully")
     except:
         bot.reply_to(message, "Failed to sign in !")
         print("failed to insert to database !")
@@ -34,23 +33,33 @@ def signin(message):
 def signin(message):
     user_id_chat = message.from_user.id
     user_name_chat = message.from_user.username
-    user_real_name = message.from_user.first_name + ' ' + message.from_user.last_name
     message_id = message.message_id
     chat_time = message.date
     try:
         # qry.sign_out(id_chat=user_id_chat, mgs_id=message_id, chat_tm=chat_time)
-        bot.reply_to(message, f"{user_real_name} out at {datetime.datetime.fromtimestamp(chat_time, local_timezone)}. Sign out succesfully")
+        bot.reply_to(message, f"{message.user.full_name} out at {datetime.datetime.fromtimestamp(chat_time, local_timezone)}. Sign out succesfully")
     except:
         bot.reply_to(message, "Failed to sign in !")
         print("failed to insert to database !")
 
-@bot.message_handler(commands=['init'])
+@bot.message_handler(commands=['init','start'])
 def init(message):
     user_id = message.from_user.id
     chat_id = message.chat.id
     member = bot.get_chat_member(user_id=user_id, chat_id=chat_id)
-    bot.reply_to(message, f"{member}")
-    print (member)
+    username = member.user.username
+    status = member.status
+    # ret = qry.init_data(user_id = user_id, username = username, status = status)
+    # if (ret == 200):
+    #     bot.reply_to(message, f"Added new member to database, with name {message.user.full_name} at {datetime.datetime.fromtimestamp(message.date, local_timezone)}")
+    #     print (member)
+    # elif (ret == 409):
+    #     bot.reply_to(message, f"Duplicate user ! For {username}")
+    bot.reply_to(message, f"Added new member to database, with name {message.user.full_name} at {datetime.datetime.fromtimestamp(message.date, local_timezone)}")
+
+@bot.message_handler(commands=['help'])
+def help(message):
+    bot.reply_to(message, f"""This is an attendance bot, usage:\n\t\'in Sign in\n\t\'out Sign out \n\t\'help to display this message""")
 
 if __name__ == "__main__":
     bot.infinity_polling()
