@@ -2,10 +2,12 @@ import mysql.connector
 from dotenv import load_dotenv
 import os
 import connector as db
+import datetime
+import tzlocal
 load_dotenv()
 
-def sign_in(id_chat, msg_id, chat_tm):
-    cursor = db.db.cursor()
+def sign_in(id_chat, msg_id, chat_tm, con):
+    cursor = con.cursor()
 
     query = f"INSERT INTO {db.DB_NAME}.absensi (userid, chat_id, time_stamp, status) Values (%s, %s, %s, %s)"
     val = (id_chat, msg_id, chat_tm, '1')
@@ -15,8 +17,8 @@ def sign_in(id_chat, msg_id, chat_tm):
     print(cursor.rowcount)
     return 200
 
-def sign_out(id_chat, msg_id, chat_tm):
-    cursor = db.db.cursor()
+def sign_out(id_chat, msg_id, chat_tm, con):
+    cursor = con.cursor()
 
     query = f"INSERT INTO {db.DB_NAME}.absensi (userid, chat_id, time_stamp, status) Values (%s, %s, %s, %s)"
     val = (id_chat, msg_id, chat_tm, '2')
@@ -26,8 +28,8 @@ def sign_out(id_chat, msg_id, chat_tm):
     print(cursor.rowcount)
     return 200
 
-def init_data(user_id, username, admin_status):
-    cursor = db.db.cursor()
+def init_data(user_id, username, admin_status, con):
+    cursor = con.cursor()
 
     query = f"SELECT username FROM mentorku.userlist WHERE userid={user_id}"
     cursor.execute(query)
@@ -46,3 +48,26 @@ def init_data(user_id, username, admin_status):
         return 200
     else:
         return 409
+    
+def get_admin_stat(userid, con):
+    cursor = con.cursor()
+
+    query = f"SELECT admin_status FROM mentorku.userlist WHERE userid = %s and active = %d"
+    val = (userid, 1)
+    cursor.execute(query, val)
+    data = cursor.fetchone()[0]
+    if(data == 1):
+        return True
+    else:
+        return False
+
+def get_data_today(con):
+    today = datetime.date.today()
+    cursor = con.cursor()
+
+    query = f"SELECT * FROM mentorku.absensi WHERE DATE(time_stamp) = %s"
+    val = (today)
+    cursor.execute(query, val)
+    data = cursor.fetchall()
+    return data
+
