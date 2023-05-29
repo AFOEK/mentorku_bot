@@ -18,7 +18,7 @@ def db_connect():
             database = ''.join(DB_NAME)
         )
     except:
-        print("Failed to connect from local network \n Connecting using tunnel")
+        print("Failed to connect from local network.\nConnecting using tunnel")
         DB_ADD_TUNNEL = os.environ.get("DB_ADD_TUNNEL")
         DB_USER = os.environ.get("DB_USER")
         DB_PASSWORD = os.environ.get("DB_PASSWORD")
