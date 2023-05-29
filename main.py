@@ -25,23 +25,16 @@ def signin(message):
     chat_time = message.date
     sign_in_time = qry.get_time(id_chat=user_id_chat, con=conn)
     times = datetime.datetime.fromtimestamp(chat_time, local_timezone)
-    qry.sign_in(id_chat=user_id_chat, msg_id=message_id, chat_tm=times, con=conn)
     times_delta = datetime.timedelta(hours=times.hour, minutes=times.minute, seconds=times.second)
-    if(times_delta > sign_in_time):
-        bot.reply_to(message, f"{message.from_user.full_name} sign in at {times}. Sign in succesfully, but you're late for {times_delta - sign_in_time}")
-    else:
-        bot.reply_to(message, f"{message.from_user.full_name} sign in at {times}. Sign in succesfully, you're on time")
-    # try:
-    #     qry.sign_in(id_chat=user_id_chat, mgs_id=message_id, chat_tm=chat_time, con=conn)
-    #     sign_in_time = qry.get_time(id_chat=user_id_chat, con=conn)
-    #     times = datetime.datetime.fromtimestamp(chat_time, local_timezone)
-    #     if(times > sign_in_time):
-    #         bot.reply_to(message, f"{message.from_user.full_name} sign in at {times}. Sign in succesfully, but you're late for {times - sign_in_time}")
-    #     else:
-    #         bot.reply_to(message, f"{message.from_user.full_name} sign in at {times}. Sign in succesfully, you're on time")
-    # except:
-    #     bot.reply_to(message, "Failed to sign in !")
-    #     print("failed to insert to database !")
+    try:
+        qry.sign_in(id_chat=user_id_chat, msg_id=message_id, chat_tm=times, con=conn)
+        if(times_delta > sign_in_time):
+            bot.reply_to(message, f"{message.from_user.full_name} sign in at {times}. Sign in succesfully, but you're late for {times_delta - sign_in_time}")
+        else:
+            bot.reply_to(message, f"{message.from_user.full_name} sign in at {times}. Sign in succesfully, you're on time")
+    except:
+        bot.reply_to(message, "Failed to sign in !")
+        print("failed to insert to database !")
 
 
 @bot.message_handler(commands=['out'])
@@ -50,12 +43,12 @@ def signin(message):
     user_name_chat = message.from_user.username
     message_id = message.message_id
     chat_time = message.date
+    times = datetime.datetime.fromtimestamp(chat_time, local_timezone)
     try:
-        qry.sign_out(id_chat=user_id_chat, mgs_id=message_id, chat_tm=chat_time, con=conn)
-        get_time = get_time(id_chat=user_id_chat, con=conn)
-        bot.reply_to(message, f"{message.from_user.full_name} out at {datetime.datetime.fromtimestamp(chat_time, local_timezone)}. Sign out succesfully")
+        qry.sign_out(id_chat=user_id_chat, msg_id=message_id, chat_tm=times, con=conn)
+        bot.reply_to(message, f"{message.from_user.full_name} out at {times}. Sign out succesfully")
     except:
-        bot.reply_to(message, "Failed to sign in !")
+        bot.reply_to(message, "Failed to sign out !")
         print("failed to insert to database !")
 
 @bot.message_handler(commands=['init','start'])
