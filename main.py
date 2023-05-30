@@ -57,25 +57,51 @@ def init(message):
     chat_id = message.chat.id
     member = bot.get_chat_member(user_id=user_id, chat_id=chat_id)
     username = member.user.username
+    names = message.from_user.full_name
     status = member.status
-    ret = qry.init_data(user_id = user_id, username = username, admin_status=status, con=conn)
+    ret = qry.init_data(user_id = user_id, username = username, admin_status=status, real_name= names, con=conn)
     if (ret == 200):
-        bot.reply_to(message, f"Added new member to database, with name {message.from_user.full_name} at {datetime.datetime.fromtimestamp(message.date, local_timezone)}")
+        bot.reply_to(message, f"Added new member to database, with name {names} at {datetime.datetime.fromtimestamp(message.date, local_timezone)}")
     elif (ret == 409):
         bot.reply_to(message, f"Duplicate user ! For {username}")
 
 @bot.message_handler(commands=['help'])
 def help(message):
-    bot.reply_to(message, f"""This is an attendance bot, usage:\n\t\'in Sign in\n\t\'out Sign out \n\t\'help to display this message""")
+    bot.reply_to(message, f"""This is an attendance bot, usage:\n\t\t/in: Sign in\n\t\t/out: Sign out \n\t\t/help: Display this message\n\t\t/get_data_today: Get today absents data""")
 
-@bot.message_handler(commands=['get_data_today'])
-def get_data(message):
+@bot.message_handler(commands=['get_data_today', 'get_data'])
+def get_data_day(message):
     user_id = message.from_user.id
     admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
+
     if(admin_stat):
         data = qry.get_data_today(con=conn)
         result = table.from_db_cursor(data)
-        bot.reply_to(message, result.get_string())
+        bot.reply_to(message, result)
+    else:
+        bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
+
+@bot.message_handler(commands=['get_data_week'])
+def get_data_week(message):
+    user_id = message.from_user.id
+    admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
+
+    if(admin_stat):
+        data = qry.get_data_week(con=conn)
+        result = table.from_db_cursor(data)
+        bot.reply_to(message, result)
+    else:
+        bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
+
+@bot.message_handler(commands=['get_data_month'])
+def get_data_month(message):
+    user_id = message.from_user.id
+    admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
+
+    if(admin_stat):
+        data = qry.get_data_month(con=conn)
+        result = table.from_db_cursor(data)
+        bot.reply_to(message, result)
     else:
         bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
 

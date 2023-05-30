@@ -2,6 +2,7 @@ import mysql.connector
 from dotenv import load_dotenv
 import os
 import datetime
+from dateutil.relativedelta import *
 import tzlocal
 load_dotenv()
 
@@ -25,7 +26,7 @@ def sign_out(id_chat, msg_id, chat_tm, con):
     con.commit()
     print(cursor.rowcount)
 
-def init_data(user_id, username, admin_status, con):
+def init_data(user_id, username, admin_status, real_name, con):
     cursor = con.cursor()
 
     query = f"SELECT username FROM mentorku.userlist WHERE userid={user_id}"
@@ -40,20 +41,18 @@ def init_data(user_id, username, admin_status, con):
 
 
     if(data is None):
-        query = f"""INSERT INTO mentorku.userlist (userid, username, update_dt, in_dt, active, admin_status) values (%s, %s, CURRENT_TIMESTAMP, TIME("07:00:00"), 1, %s)"""
-        val = (user_id, username, int(status))
+        query = f"""INSERT INTO mentorku.userlist (userid, username, name, update_dt, in_dt, active, admin_status) values (%s, %s, %s,CURRENT_TIMESTAMP, TIME("07:00:00"), 1, %s)"""
+        val = (user_id, username, real_name, int(status))
         cursor.execute(query, val)
         con.commit()
         return 200
     else:
         return 409
         
-        
-    
 def get_admin_stat(userid, con):
     cursor = con.cursor()
 
-    query = f"SELECT admin_status FROM mentorku.userlist WHERE userid = %s and active = %d"
+    query = f"SELECT admin_status FROM mentorku.userlist WHERE userid = %s and active = %s"
     val = (userid, 1)
     cursor.execute(query, val)
     data = cursor.fetchone()[0]
@@ -67,10 +66,9 @@ def get_data_today(con):
     cursor = con.cursor()
 
     query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) = %s"
-    val = (today)
+    val = (today,)
     cursor.execute(query, val)
-    data = cursor.fetchall()
-    return data
+    return cursor
 
 def get_time(id_chat, con):
     cursor = con.cursor()
@@ -80,3 +78,22 @@ def get_time(id_chat, con):
     data = cursor.fetchone()[0]
     return data
 
+def get_data_week(con):
+    today = datetime.date.today()
+    week = datetime.date.today() + relativedelta(days=-7)
+    cursor = con.cursor()
+
+    query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) BETWEEN %s and %s"
+    val = (week,today)
+    cursor.execute(query, val)
+    return cursor
+
+def get_data_month(con):
+    today = datetime.date.today()
+    week = datetime.date.today() + relativedelta(months=-1)
+    cursor = con.cursor()
+
+    query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) BETWEEN %s and %s"
+    val = (week,today)
+    cursor.execute(query, val)
+    return cursor
