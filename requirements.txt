@@ -4,3 +4,4 @@ python-dotenv
 tzlocal
 prettytable
 python-dateutil
+openpyxl

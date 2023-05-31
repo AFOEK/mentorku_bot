@@ -105,5 +105,66 @@ def get_data_month(message):
     else:
         bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
 
+@bot.message_handler(commands=['get_data_year'])
+def get_data_month(message):
+    user_id = message.from_user.id
+    admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
+
+    if(admin_stat):
+        data = qry.get_data_year(con=conn)
+        result = table.from_db_cursor(data)
+        bot.reply_to(message, result)
+    else:
+        bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
+
+@bot.message_handler(commands=['get_data_today_excel'])
+def get_data_day(message):
+    user_id = message.from_user.id
+    chat_id = message.chat.id
+    msg_id = message.message_id
+    admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
+
+    if(admin_stat):
+        qry.get_data_today_excel(con=conn)
+        bot.send_document(chat_id=chat_id, document=telebot.types.InputFile('Mentorku attendance today.xlsx'), reply_to_message_id=msg_id)
+    else:
+        bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
+
+# @bot.message_handler(commands=['get_data_week'])
+# def get_data_week(message):
+#     user_id = message.from_user.id
+#     admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
+
+#     if(admin_stat):
+#         data = qry.get_data_week(con=conn)
+#         result = table.from_db_cursor(data)
+#         bot.reply_to(message, result)
+#     else:
+#         bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
+
+# @bot.message_handler(commands=['get_data_month'])
+# def get_data_month(message):
+#     user_id = message.from_user.id
+#     admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
+
+#     if(admin_stat):
+#         data = qry.get_data_month(con=conn)
+#         result = table.from_db_cursor(data)
+#         bot.reply_to(message, result)
+#     else:
+#         bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
+
+# @bot.message_handler(commands=['get_data_year'])
+# def get_data_month(message):
+#     user_id = message.from_user.id
+#     admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
+
+#     if(admin_stat):
+#         data = qry.get_data_year(con=conn)
+#         result = table.from_db_cursor(data)
+#         bot.reply_to(message, result)
+#     else:
+#         bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
+
 if __name__ == "__main__":
     bot.infinity_polling()

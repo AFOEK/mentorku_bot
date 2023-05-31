@@ -1,10 +1,6 @@
-import mysql.connector
-from dotenv import load_dotenv
-import os
 import datetime
 from dateutil.relativedelta import *
-import tzlocal
-load_dotenv()
+from openpyxl import Workbook
 
 def sign_in(id_chat, msg_id, chat_tm, con):
     cursor = con.cursor()
@@ -90,10 +86,40 @@ def get_data_week(con):
 
 def get_data_month(con):
     today = datetime.date.today()
-    week = datetime.date.today() + relativedelta(months=-1)
+    month = datetime.date.today() + relativedelta(months=-1)
     cursor = con.cursor()
 
     query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) BETWEEN %s and %s"
-    val = (week,today)
+    val = (month,today)
     cursor.execute(query, val)
     return cursor
+
+def get_data_year(con):
+    today = datetime.date.today()
+    year = datetime.date.today() + relativedelta(years=-1)
+    cursor = con.cursor()
+
+    query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) BETWEEN %s and %s"
+    val = (year,today)
+    cursor.execute(query, val)
+    return cursor
+
+def get_data_today_excel(con):
+    today = datetime.date.today()
+    cursor = con.cursor()
+    wb = Workbook()
+
+    query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) = %s"
+    val = (today,)
+    cursor.execute(query, val)
+    result = cursor.fetchall()
+
+    ws = wb.active
+    ws.title = "Today Absention"
+    ws.append(cursor.column_names)
+
+    for row in result:
+        ws.append(row)
+
+    wb_name = "Mentorku attendance today"
+    wb.save(wb_name+".xlsx")
