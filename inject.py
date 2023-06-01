@@ -56,16 +56,7 @@ def get_admin_stat(userid, con):
         return True
     else:
         return False
-
-def get_data_today(con):
-    today = datetime.date.today()
-    cursor = con.cursor()
-
-    query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) = %s"
-    val = (today,)
-    cursor.execute(query, val)
-    return cursor
-
+    
 def get_time(id_chat, con):
     cursor = con.cursor()
 
@@ -74,52 +65,72 @@ def get_time(id_chat, con):
     data = cursor.fetchone()[0]
     return data
 
-def get_data_week(con):
-    today = datetime.date.today()
-    week = datetime.date.today() + relativedelta(days=-7)
+def get_data(con, args):
     cursor = con.cursor()
+    date = datetime.date.today()
+    match args:
+        case "1d":
+            query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) = %s"
+            val = (date,)
+        case "1w" | "7d":
+            week = datetime.date.today() + relativedelta(days=-7)
+            query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) BETWEEN %s and %s"
+            val = (week,date)
+        case "1m" | "30d":
+            month = datetime.date.today() + relativedelta(months=-1)
+            query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) BETWEEN %s and %s"
+            val = (month,date)
+        case "1y" | "12m":
+            year = datetime.date.today() + relativedelta(years=-1)
+            query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) BETWEEN %s and %s"
+            val = (year,date)
+        case _:
+            return 409
 
-    query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) BETWEEN %s and %s"
-    val = (week,today)
     cursor.execute(query, val)
     return cursor
 
-def get_data_month(con):
-    today = datetime.date.today()
-    month = datetime.date.today() + relativedelta(months=-1)
-    cursor = con.cursor()
-
-    query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) BETWEEN %s and %s"
-    val = (month,today)
-    cursor.execute(query, val)
-    return cursor
-
-def get_data_year(con):
-    today = datetime.date.today()
-    year = datetime.date.today() + relativedelta(years=-1)
-    cursor = con.cursor()
-
-    query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) BETWEEN %s and %s"
-    val = (year,today)
-    cursor.execute(query, val)
-    return cursor
-
-def get_data_today_excel(con):
-    today = datetime.date.today()
+def get_data_excel(con, args):
+    date = datetime.date.today()
     cursor = con.cursor()
     wb = Workbook()
+    ws = wb.active
 
-    query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) = %s"
-    val = (today,)
+    match args:
+        case "1d":
+            query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) = %s"
+            val = (date,)
+            ws.title = "Today attendances"
+            periode = "today"
+        case "1w" | "7d":
+            week = datetime.date.today() + relativedelta(days=-7)
+            query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) BETWEEN %s and %s"
+            val = (week,date)
+            ws.title = "This week attendances"
+            periode = "week"
+        case "1m" | "30d":
+            month = datetime.date.today() + relativedelta(months=-1)
+            query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) BETWEEN %s and %s"
+            val = (month,date)
+            ws.title = "This month attendances"
+            periode = "month"
+        case "1y" | "12m":
+            year = datetime.date.today() + relativedelta(years=-1)
+            query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) BETWEEN %s and %s"
+            val = (year,date)
+            ws.title = "This year attendances"
+            periode = "year"
+        case _:
+            return 409
+
     cursor.execute(query, val)
     result = cursor.fetchall()
 
-    ws = wb.active
-    ws.title = "Today Absention"
     ws.append(cursor.column_names)
 
     for row in result:
         ws.append(row)
 
-    wb_name = "Mentorku attendance today"
+    wb_name = "Mentorku attendance " + periode
     wb.save(wb_name+".xlsx")
+    return periode

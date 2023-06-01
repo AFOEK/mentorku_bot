@@ -67,104 +67,50 @@ def init(message):
 
 @bot.message_handler(commands=['help'])
 def help(message):
-    bot.reply_to(message, f"""This is an attendance bot, usage:\n\t\t/in: Sign in\n\t\t/out: Sign out \n\t\t/help: Display this message\n\t\t/get_data_today: Get today absents data""")
+    bot.reply_to(message, """
+`/start` or `/init`: Will read `user_name`, `full_name`, `user_id`, and `member_status` of the user. This command just use once when new user joined to the group.
+`/in`: Sign in, if user late it will give how many hours, minutes, and seconds the user already passed.
+`/out`: Sign out.
+`/help`: Will show this exact message.
+`/get_data {args}`: Will sent attendence report based how many days, months, or year the user supplied. Possible options are 1d, 7d, 30d, 1w, 1m, 12m, and 1y.
+E.g: `/get_data 1d`, `/get_data 7d`, `/get_data 1m`, or `/get_data 1y`.
+`/get_data_excel {args}`: Will sent attendence report in Excel format based how many days, months, or year the user supplied. Possible options are 1d, 7d, 30d, 1w, 1m, 12m, and 1y.
+E.g: `/get_data_excel 1d`, `/get_data_excel 7d`, `/get_data_excel 1m`, or `/get_data_excel 1y`.""")
 
-@bot.message_handler(commands=['get_data_today', 'get_data'])
+@bot.message_handler(commands=['get_data'])
 def get_data_day(message):
     user_id = message.from_user.id
     admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
+    if(message.text != "" or message.text is not None):
+        args = message.text.split()[1:]
 
     if(admin_stat):
-        data = qry.get_data_today(con=conn)
-        result = table.from_db_cursor(data)
-        bot.reply_to(message, result)
+        data = qry.get_data(con=conn, args = args[0])
+        if(data != 409):
+            result = table.from_db_cursor(data)
+            bot.reply_to(message, result)
+        else:
+            bot.reply_to(message, f"Did you give how many days you want to pull ?\nPossible options: 1d, 7d, 30d, 1w, 1m, 12m, 1y")
     else:
         bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
 
-@bot.message_handler(commands=['get_data_week'])
-def get_data_week(message):
-    user_id = message.from_user.id
-    admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
-
-    if(admin_stat):
-        data = qry.get_data_week(con=conn)
-        result = table.from_db_cursor(data)
-        bot.reply_to(message, result)
-    else:
-        bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
-
-@bot.message_handler(commands=['get_data_month'])
-def get_data_month(message):
-    user_id = message.from_user.id
-    admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
-
-    if(admin_stat):
-        data = qry.get_data_month(con=conn)
-        result = table.from_db_cursor(data)
-        bot.reply_to(message, result)
-    else:
-        bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
-
-@bot.message_handler(commands=['get_data_year'])
-def get_data_month(message):
-    user_id = message.from_user.id
-    admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
-
-    if(admin_stat):
-        data = qry.get_data_year(con=conn)
-        result = table.from_db_cursor(data)
-        bot.reply_to(message, result)
-    else:
-        bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
-
-@bot.message_handler(commands=['get_data_today_excel'])
-def get_data_day(message):
+@bot.message_handler(commands=['get_data_excel'])
+def get_data_excel(message):
     user_id = message.from_user.id
     chat_id = message.chat.id
     msg_id = message.message_id
     admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
+    if(message.text != "" or message.text is not None):
+        args = message.text.split()[1:]
 
     if(admin_stat):
-        qry.get_data_today_excel(con=conn)
-        bot.send_document(chat_id=chat_id, document=telebot.types.InputFile('Mentorku attendance today.xlsx'), reply_to_message_id=msg_id)
+        ret = qry.get_data_excel(con=conn, args = args[0])
+        if(ret != 409):
+            bot.send_document(chat_id=chat_id, document=telebot.types.InputFile('Mentorku attendance '+ ret +'.xlsx'), reply_to_message_id=msg_id)
+        else:
+            bot.reply_to(message, f"Did you give how many days you want to pull ?\nPossible options: 1d, 7d, 30d, 1w, 1m, 12m, 1y")
     else:
         bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
-
-# @bot.message_handler(commands=['get_data_week'])
-# def get_data_week(message):
-#     user_id = message.from_user.id
-#     admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
-
-#     if(admin_stat):
-#         data = qry.get_data_week(con=conn)
-#         result = table.from_db_cursor(data)
-#         bot.reply_to(message, result)
-#     else:
-#         bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
-
-# @bot.message_handler(commands=['get_data_month'])
-# def get_data_month(message):
-#     user_id = message.from_user.id
-#     admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
-
-#     if(admin_stat):
-#         data = qry.get_data_month(con=conn)
-#         result = table.from_db_cursor(data)
-#         bot.reply_to(message, result)
-#     else:
-#         bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
-
-# @bot.message_handler(commands=['get_data_year'])
-# def get_data_month(message):
-#     user_id = message.from_user.id
-#     admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
-
-#     if(admin_stat):
-#         data = qry.get_data_year(con=conn)
-#         result = table.from_db_cursor(data)
-#         bot.reply_to(message, result)
-#     else:
-#         bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
 
 if __name__ == "__main__":
     bot.infinity_polling()
