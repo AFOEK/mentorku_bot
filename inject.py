@@ -133,4 +133,4 @@ def get_data_excel(con, args):
 
     wb_name = "Mentorku attendance " + periode
     wb.save(wb_name+".xlsx")
-    return periode
+    return str(periode)

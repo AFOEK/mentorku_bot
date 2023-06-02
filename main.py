@@ -68,13 +68,13 @@ def init(message):
 @bot.message_handler(commands=['help'])
 def help(message):
     bot.reply_to(message, """
-`/start` or `/init`: Will read `user_name`, `full_name`, `user_id`, and `member_status` of the user. This command just use once when new user joined to the group.
-`/in`: Sign in, if user late it will give how many hours, minutes, and seconds the user already passed.
-`/out`: Sign out.
-`/help`: Will show this exact message.
-`/get_data {args}`: Will sent attendence report based how many days, months, or year the user supplied. Possible options are 1d, 7d, 30d, 1w, 1m, 12m, and 1y.
+/start or /init: Will read "user_name", "full_name", "user_id", and "member_status" of the user. This command just use once when new user joined to the group.
+/in: Sign in, if user late it will give how many hours, minutes, and seconds the user already passed.
+/out: Sign out.
+/help: Will show this exact message.
+/get_data {args}: Will sent attendence report based how many days, months, or year the user supplied. Possible options are 1d, 7d, 30d, 1w, 1m, 12m, and 1y.
 E.g: `/get_data 1d`, `/get_data 7d`, `/get_data 1m`, or `/get_data 1y`.
-`/get_data_excel {args}`: Will sent attendence report in Excel format based how many days, months, or year the user supplied. Possible options are 1d, 7d, 30d, 1w, 1m, 12m, and 1y.
+/get_data_excel {args}: Will sent attendence report in Excel format based how many days, months, or year the user supplied. Possible options are 1d, 7d, 30d, 1w, 1m, 12m, and 1y.
 E.g: `/get_data_excel 1d`, `/get_data_excel 7d`, `/get_data_excel 1m`, or `/get_data_excel 1y`.""")
 
 @bot.message_handler(commands=['get_data'])
@@ -85,7 +85,10 @@ def get_data_day(message):
         args = message.text.split()[1:]
 
     if(admin_stat):
-        data = qry.get_data(con=conn, args = args[0])
+        try:
+            data = qry.get_data(con=conn, args = args[0])
+        except IndexError:
+            bot.reply_to(message, "Did you give how many days you want to pull ?\nPossible options: 1d, 7d, 30d, 1w, 1m, 12m, 1y")
         if(data != 409):
             result = table.from_db_cursor(data)
             bot.reply_to(message, result)
@@ -104,7 +107,11 @@ def get_data_excel(message):
         args = message.text.split()[1:]
 
     if(admin_stat):
-        ret = qry.get_data_excel(con=conn, args = args[0])
+        try:
+            ret = qry.get_data_excel(con=conn, args = args[0])
+        except IndexError:
+            bot.reply_to(message, "Did you give how many days you want to pull ?\nPossible options: 1d, 7d, 30d, 1w, 1m, 12m, 1y")
+
         if(ret != 409):
             bot.send_document(chat_id=chat_id, document=telebot.types.InputFile('Mentorku attendance '+ ret +'.xlsx'), reply_to_message_id=msg_id)
         else:
