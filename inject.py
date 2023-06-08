@@ -5,7 +5,7 @@ from openpyxl import Workbook
 def sign_in(id_chat, msg_id, chat_tm, con):
     cursor = con.cursor()
 
-    query = f"INSERT INTO mentorku.absensi (userid, chat_id, time_stamp, status) Values (%s, %s, %s, %s)"
+    query = f"INSERT INTO mentorku.absensi (userid, chat_id, time_stamp, status, leave_days) Values (%s, %s, %s, %s, NULL)"
     val = (id_chat, msg_id, chat_tm, '1')
 
     cursor.execute(query, val)
@@ -15,7 +15,7 @@ def sign_in(id_chat, msg_id, chat_tm, con):
 def sign_out(id_chat, msg_id, chat_tm, con):
     cursor = con.cursor()
 
-    query = f"INSERT INTO mentorku.absensi (userid, chat_id, time_stamp, status) Values (%s, %s, %s, %s)"
+    query = f"INSERT INTO mentorku.absensi (userid, chat_id, time_stamp, status, leave_days) Values (%s, %s, %s, %s, NULL)"
     val = (id_chat, msg_id, chat_tm, '2')
 
     cursor.execute(query, val)
@@ -134,3 +134,16 @@ def get_data_excel(con, args):
     wb_name = "Mentorku attendance " + periode
     wb.save(wb_name+".xlsx")
     return str(periode)
+
+def sick(id_chat, msg_id, chat_tm, con):
+    cursor = con.cursor()
+
+    query = f"INSERT INTO mentorku.absensi (userid, chat_id, time_stamp, status, leave_days) Values (%s, %s, %s, %s, 1)"
+    val = (id_chat, msg_id, chat_tm, '3')
+
+    cursor.execute(query, val)
+    con.commit()
+    print(cursor.rowcount)
+
+def leave(id_chat, msg_id, chat_tm, dwmy, dur, con):
+    cursor = con.cursor()

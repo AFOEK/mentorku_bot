@@ -1,11 +1,13 @@
 import os
+import re
 import telebot
-from dotenv import load_dotenv 
-import connector as db
-import inject as qry
 import datetime
 import tzlocal
+import connector as db
+import inject as qry
 import prettytable as table
+from dotenv import load_dotenv 
+
 load_dotenv()
 
 token = ''.join(os.environ.get("BOT_TOKEN"))
@@ -118,6 +120,34 @@ def get_data_excel(message):
             bot.reply_to(message, f"Did you give how many days you want to pull ?\nPossible options: 1d, 7d, 30d, 1w, 1m, 12m, 1y")
     else:
         bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
+
+@bot.message_handler(commands=['sick'])
+def sick_attendence(message):
+    user_id_chat = message.from_user.id
+    message_id = message.message_id
+    chat_time = message.date
+    times = datetime.datetime.fromtimestamp(chat_time, local_timezone)
+    try:
+        qry.sick(id_chat=user_id_chat, msg_id=message_id, chat_tm=times, con=conn)
+        bot.reply_to(message, f"{message.from_user.full_name} sick leave at {times}. Get well soon")
+    except:
+        bot.reply_to(message, "Failed to set sick leave !")
+        print("failed to insert to database !")
+
+@bot.message_handler(commands=['leave'])
+def leave_attendence(message):
+    user_id_chat = message.from_user.id
+    message_id = message.message_id
+    chat_time = message.date
+    times = datetime.datetime.fromtimestamp(chat_time, local_timezone)
+    if(message.text != "" or message.text is not None):
+        args = message.text.split()[1:]
+
+    dwmy = re.findall("[dwmy]", args[0])
+    dur = re.findall("[0-9]", args[0])
+    print(dwmy)
+    print(dur)
+    
 
 if __name__ == "__main__":
     bot.infinity_polling()
