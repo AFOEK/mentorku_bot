@@ -143,14 +143,20 @@ def leave_attendence(message):
     if(message.text != "" or message.text is not None):
         args = message.text.split()[1:]
 
-    dwm = ''.join(re.findall("[dwm]", args[0]))
     dur = ''.join(re.findall("[0-9]", args[0]))
-    ret = qry.leave(id_chat=user_id_chat, msg_id=message_id, chat_tm=times, dwm=dwm, dur=dur, con=conn)
 
-    if(ret != 400):
-        bot.reply_to(message, "You requested leave for " + dur + " " + dwm)
+    if(qry.get_leave_status(userid=user_id_chat, con=conn)):
+        if(int(dur) >= 4):
+            bot.reply_to(message, "You can take 3 days leave only")
+        else:
+            ret = qry.leave(id_chat=user_id_chat, msg_id=message_id, chat_tm=times, dur=dur, con=conn)
+
+        if(ret):
+            bot.reply_to(message, "You requested leave for " + dur + " days")
+        else:
+            bot.reply_to(message, "Did you give how many days you want to take on leave ?")
     else:
-        bot.reply_to(message, "Did you give how many days you want to take on leave ?\nPossible options: 1-31d, 1-4w, 1-12m")
+        bot.reply_to(message, "You can take 3 days leave in ONE month, if any urgent matters please contact your supervisior !")
     
     
 

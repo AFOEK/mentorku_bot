@@ -145,32 +145,28 @@ def sick(id_chat, msg_id, chat_tm, con):
     con.commit()
     print(cursor.rowcount)
 
-def leave(id_chat, msg_id, chat_tm, dwm, dur, con):
+
+def get_leave_status(userid, con):
     cursor = con.cursor()
-    match dwm:
-        case "d":
-            for i in range (1, int(dur) + 1):
-                times = chat_tm + relativedelta(days=+i)
-                query = f"INSERT INTO mentorku.absensi (userid, chat_id, time_stamp, status) Values (%s, %s, %s, %s)"
-                val = (id_chat, msg_id, times, '4')
-                cursor.execute(query, val)
-                print("days " + str(i))
-        case "w":
-            for i in range (1, int(dur) + 1):
-                times = chat_tm + relativedelta(weeks=+i)
-                query = f"INSERT INTO mentorku.absensi (userid, chat_id, time_stamp, status) Values (%s, %s, %s, %s)"
-                val = (id_chat, msg_id, times, '4')
-                cursor.execute(query, val)
-                con.commit()
-                print("weeks " + str(i))
-        case "m":
-            for i in range (1, int(dur) + 1):
-                times = chat_tm + relativedelta(months=+i)
-                query = f"INSERT INTO mentorku.absensi (userid, chat_id, time_stamp, status) Values (%s, %s, %s, %s)"
-                val = (id_chat, msg_id, times, '4')
-                cursor.execute(query, val)
-                con.commit()
-                print("months " + str(i))
-        case _:
-            return 400    
+
+    query = f"SELECT * FROM mentorku.absensi WHERE MONTH(time_stamp) = MONTH(CURDATE()) AND status = 4 AND userid = {userid}"
+    cursor.execute(query)
+    data = cursor.fetchall()
+
+    if not data:
+        return True
+    else:
+        return False
+
+def leave(id_chat, msg_id, chat_tm, dur, con):
+    cursor = con.cursor()
+    
+    for i in range (1, int(dur) + 1):
+        times = chat_tm + relativedelta(days=+i)
+        query = f"INSERT INTO mentorku.absensi (userid, chat_id, time_stamp, status) Values (%s, %s, %s, %s)"
+        val = (id_chat, msg_id, times, '4')
+        cursor.execute(query, val)
+        print("days " + str(i))
+
     con.commit()
+    return True
