@@ -5,7 +5,7 @@ from openpyxl import Workbook
 def sign_in(id_chat, msg_id, chat_tm, con):
     cursor = con.cursor()
 
-    query = f"INSERT INTO mentorku.absensi (userid, chat_id, time_stamp, status, leave_days) Values (%s, %s, %s, %s, NULL)"
+    query = f"INSERT INTO mentorku.absensi (userid, chat_id, time_stamp, status) Values (%s, %s, %s, %s)"
     val = (id_chat, msg_id, chat_tm, '1')
 
     cursor.execute(query, val)
@@ -15,7 +15,7 @@ def sign_in(id_chat, msg_id, chat_tm, con):
 def sign_out(id_chat, msg_id, chat_tm, con):
     cursor = con.cursor()
 
-    query = f"INSERT INTO mentorku.absensi (userid, chat_id, time_stamp, status, leave_days) Values (%s, %s, %s, %s, NULL)"
+    query = f"INSERT INTO mentorku.absensi (userid, chat_id, time_stamp, status) Values (%s, %s, %s, %s)"
     val = (id_chat, msg_id, chat_tm, '2')
 
     cursor.execute(query, val)
@@ -69,21 +69,21 @@ def get_data(con, args):
     cursor = con.cursor()
     date = datetime.date.today()
     match args:
-        case "1d":
+        case "1d" | "now":
             query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) = %s"
             val = (date,)
         case "1w" | "7d":
-            week = datetime.date.today() + relativedelta(days=-7)
+            week = datetime.date.today() + relativedelta(days=+7)
             query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) BETWEEN %s and %s"
-            val = (week,date)
+            val = (date,week)
         case "1m" | "30d":
-            month = datetime.date.today() + relativedelta(months=-1)
+            month = datetime.date.today() + relativedelta(months=+1)
             query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) BETWEEN %s and %s"
-            val = (month,date)
+            val = (date,month)
         case "1y" | "12m":
-            year = datetime.date.today() + relativedelta(years=-1)
+            year = datetime.date.today() + relativedelta(years=+1)
             query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) BETWEEN %s and %s"
-            val = (year,date)
+            val = (date,year)
         case _:
             return 409
 
@@ -97,27 +97,27 @@ def get_data_excel(con, args):
     ws = wb.active
 
     match args:
-        case "1d":
+        case "1d" | "now":
             query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) = %s"
             val = (date,)
             ws.title = "Today attendances"
             periode = "today"
         case "1w" | "7d":
-            week = datetime.date.today() + relativedelta(days=-7)
+            week = datetime.date.today() + relativedelta(days=+7)
             query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) BETWEEN %s and %s"
-            val = (week,date)
+            val = (date,year)
             ws.title = "This week attendances"
             periode = "week"
         case "1m" | "30d":
-            month = datetime.date.today() + relativedelta(months=-1)
+            month = datetime.date.today() + relativedelta(months=+1)
             query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) BETWEEN %s and %s"
-            val = (month,date)
+            val = (date,month)
             ws.title = "This month attendances"
             periode = "month"
         case "1y" | "12m":
-            year = datetime.date.today() + relativedelta(years=-1)
+            year = datetime.date.today() + relativedelta(years=+1)
             query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) BETWEEN %s and %s"
-            val = (year,date)
+            val = (date,year)
             ws.title = "This year attendances"
             periode = "year"
         case _:
@@ -138,12 +138,39 @@ def get_data_excel(con, args):
 def sick(id_chat, msg_id, chat_tm, con):
     cursor = con.cursor()
 
-    query = f"INSERT INTO mentorku.absensi (userid, chat_id, time_stamp, status, leave_days) Values (%s, %s, %s, %s, 1)"
+    query = f"INSERT INTO mentorku.absensi (userid, chat_id, time_stamp, status) Values (%s, %s, %s, %s)"
     val = (id_chat, msg_id, chat_tm, '3')
 
     cursor.execute(query, val)
     con.commit()
     print(cursor.rowcount)
 
-def leave(id_chat, msg_id, chat_tm, dwmy, dur, con):
+def leave(id_chat, msg_id, chat_tm, dwm, dur, con):
     cursor = con.cursor()
+    match dwm:
+        case "d":
+            for i in range (1, int(dur) + 1):
+                times = chat_tm + relativedelta(days=+i)
+                query = f"INSERT INTO mentorku.absensi (userid, chat_id, time_stamp, status) Values (%s, %s, %s, %s)"
+                val = (id_chat, msg_id, times, '4')
+                cursor.execute(query, val)
+                print("days " + str(i))
+        case "w":
+            for i in range (1, int(dur) + 1):
+                times = chat_tm + relativedelta(weeks=+i)
+                query = f"INSERT INTO mentorku.absensi (userid, chat_id, time_stamp, status) Values (%s, %s, %s, %s)"
+                val = (id_chat, msg_id, times, '4')
+                cursor.execute(query, val)
+                con.commit()
+                print("weeks " + str(i))
+        case "m":
+            for i in range (1, int(dur) + 1):
+                times = chat_tm + relativedelta(months=+i)
+                query = f"INSERT INTO mentorku.absensi (userid, chat_id, time_stamp, status) Values (%s, %s, %s, %s)"
+                val = (id_chat, msg_id, times, '4')
+                cursor.execute(query, val)
+                con.commit()
+                print("months " + str(i))
+        case _:
+            return 400    
+    con.commit()

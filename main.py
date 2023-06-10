@@ -90,12 +90,12 @@ def get_data_day(message):
         try:
             data = qry.get_data(con=conn, args = args[0])
         except IndexError:
-            bot.reply_to(message, "Did you give how many days you want to pull ?\nPossible options: 1d, 7d, 30d, 1w, 1m, 12m, 1y")
+            bot.reply_to(message, "Did you give how many days you want to pull ?\nPossible options: now, 1d, 7d, 30d, 1w, 1m, 12m, 1y")
         if(data != 409):
             result = table.from_db_cursor(data)
             bot.reply_to(message, result)
         else:
-            bot.reply_to(message, f"Did you give how many days you want to pull ?\nPossible options: 1d, 7d, 30d, 1w, 1m, 12m, 1y")
+            bot.reply_to(message, f"Did you give how many days you want to pull ?\nPossible options: now, 1d, 7d, 30d, 1w, 1m, 12m, 1y")
     else:
         bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
 
@@ -112,12 +112,12 @@ def get_data_excel(message):
         try:
             ret = qry.get_data_excel(con=conn, args = args[0])
         except IndexError:
-            bot.reply_to(message, "Did you give how many days you want to pull ?\nPossible options: 1d, 7d, 30d, 1w, 1m, 12m, 1y")
+            bot.reply_to(message, "Did you give how many days you want to pull ?\nPossible options: now, 1d, 7d, 30d, 1w, 1m, 12m, 1y")
 
         if(ret != 409):
             bot.send_document(chat_id=chat_id, document=telebot.types.InputFile('Mentorku attendance '+ ret +'.xlsx'), reply_to_message_id=msg_id)
         else:
-            bot.reply_to(message, f"Did you give how many days you want to pull ?\nPossible options: 1d, 7d, 30d, 1w, 1m, 12m, 1y")
+            bot.reply_to(message, f"Did you give how many days you want to pull ?\nPossible options: now, 1d, 7d, 30d, 1w, 1m, 12m, 1y")
     else:
         bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
 
@@ -143,10 +143,15 @@ def leave_attendence(message):
     if(message.text != "" or message.text is not None):
         args = message.text.split()[1:]
 
-    dwmy = re.findall("[dwmy]", args[0])
-    dur = re.findall("[0-9]", args[0])
-    print(dwmy)
-    print(dur)
+    dwm = ''.join(re.findall("[dwm]", args[0]))
+    dur = ''.join(re.findall("[0-9]", args[0]))
+    ret = qry.leave(id_chat=user_id_chat, msg_id=message_id, chat_tm=times, dwm=dwm, dur=dur, con=conn)
+
+    if(ret != 400):
+        bot.reply_to(message, "You requested leave for " + dur + " " + dwm)
+    else:
+        bot.reply_to(message, "Did you give how many days you want to take on leave ?\nPossible options: 1-31d, 1-4w, 1-12m")
+    
     
 
 if __name__ == "__main__":
