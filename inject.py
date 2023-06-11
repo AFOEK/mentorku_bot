@@ -22,13 +22,12 @@ def sign_out(id_chat, msg_id, chat_tm, con):
     con.commit()
     print(cursor.rowcount)
 
-def init_data(user_id, username, admin_status, real_name, con):
+def init_data(user_id, username, admin_status, real_name, chat_id, con):
     cursor = con.cursor()
 
     query = f"SELECT username FROM mentorku.userlist WHERE userid={user_id}"
     cursor.execute(query)
     data=cursor.fetchone()
-    print(data)
     
     if(admin_status == "administrator" or admin_status == "creator"):
         status = 1
@@ -37,11 +36,17 @@ def init_data(user_id, username, admin_status, real_name, con):
 
 
     if(data is None):
-        query = f"""INSERT INTO mentorku.userlist (userid, username, name, update_dt, in_dt, active, admin_status) values (%s, %s, %s,CURRENT_TIMESTAMP, TIME("07:00:00"), 1, %s)"""
-        val = (user_id, username, real_name, int(status))
+        query = f"""INSERT INTO mentorku.userlist (userid, chat_room_id, username, name, update_dt, in_dt, active, admin_status) values (%s, %s, %s, %s, CURRENT_TIMESTAMP, TIME("07:00:00"), 1, %s)"""
+        val = (user_id, chat_id, username, real_name, int(status))
         cursor.execute(query, val)
         con.commit()
         return 200
+    elif(data is not None):
+        query = f"""UPDATE mentorku.userlist SET update_dt = CURRENT_TIMESTAMP, chat_room_id = "%s" WHERE userid = {user_id}"""
+        val = (chat_id,)
+        cursor.execute(query, val)
+        con.commit()
+        return 204
     else:
         return 409
         
@@ -105,7 +110,7 @@ def get_data_excel(con, args):
         case "1w" | "7d":
             week = datetime.date.today() + relativedelta(days=+7)
             query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) BETWEEN %s and %s"
-            val = (date,year)
+            val = (date,week)
             ws.title = "This week attendances"
             periode = "week"
         case "1m" | "30d":
@@ -170,3 +175,18 @@ def leave(id_chat, msg_id, chat_tm, dur, con):
 
     con.commit()
     return True
+
+def set_user_time(username, in_dt, con):
+    cursor = con.cursor()
+    query =f"""SELECT in_dt FROM mentorku.userlist where username = "{username}";"""
+    cursor.execute(query)
+    data = cursor.fetchall()
+    
+    if not data:
+        return 409
+    else:
+        query = f"""UPDATE mentorku.userlist SET in_dt = %s WHERE username = %s"""
+        val = (in_dt,username)
+        cursor.execute(query, val)
+        con.commit()
+        return 200

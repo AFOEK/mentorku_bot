@@ -61,11 +61,13 @@ def init(message):
     username = member.user.username
     names = message.from_user.full_name
     status = member.status
-    ret = qry.init_data(user_id = user_id, username = username, admin_status=status, real_name= names, con=conn)
+    ret = qry.init_data(user_id = user_id, username = username, admin_status=status, real_name= names, chat_id = chat_id, con=conn)
     if (ret == 200):
         bot.reply_to(message, f"Added new member to database, with name {names} at {datetime.datetime.fromtimestamp(message.date, local_timezone)}")
-    elif (ret == 409):
-        bot.reply_to(message, f"Duplicate user ! For {username}")
+    elif (ret == 204):
+        bot.reply_to(message, f"Successfuly update for {username}")
+    else:
+        bot.reply_to(message, f"Failed to insert or update user ! For {username}")
 
 @bot.message_handler(commands=['help'])
 def help(message):
@@ -85,6 +87,8 @@ def get_data_day(message):
     admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
     if(message.text != "" or message.text is not None):
         args = message.text.split()[1:]
+    else:
+        bot.reply_to(message, f"Did you give how many days you want to pull ?\nPossible options: now, 1d, 7d, 30d, 1w, 1m, 12m, 1y")
 
     if(admin_stat):
         try:
@@ -107,6 +111,8 @@ def get_data_excel(message):
     admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
     if(message.text != "" or message.text is not None):
         args = message.text.split()[1:]
+    else:
+        bot.reply_to(message, f"Did you give how many days you want to pull ?\nPossible options: now, 1d, 7d, 30d, 1w, 1m, 12m, 1y")
 
     if(admin_stat):
         try:
@@ -142,6 +148,8 @@ def leave_attendence(message):
     times = datetime.datetime.fromtimestamp(chat_time, local_timezone)
     if(message.text != "" or message.text is not None):
         args = message.text.split()[1:]
+    else:
+        bot.reply_to(message, "Did you give how many days you want to take on leave ?")
 
     dur = ''.join(re.findall("[0-9]", args[0]))
 
@@ -158,7 +166,29 @@ def leave_attendence(message):
     else:
         bot.reply_to(message, "You can take 3 days leave in ONE month, if any urgent matters please contact your supervisior !")
     
-    
+@bot.message_handler(commands=['set_in_time'])
+def set_in_time(message):
+    fullname = message.from_user.full_name
+    user_id = message.from_user.id
+
+    admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
+    if(admin_stat):
+        if(message.text != "" or message.text is not None):
+            args = message.text.split()[1:3]
+        else:
+            bot.reply_to(message, "Did you give what time the user should sign in ? Format: hh:mm:ss")
+
+        times = ''.join(args[1])
+        username = ''.join(args[0])
+        if(re.search("[0-9][0-9]:[0-9][0-9]:[0-9][0-9]", times)):
+            ret = qry.set_user_time(username=username, in_dt=times, con=conn)
+            if(ret == 200):
+                bot.reply_to(message, f"""Succesfully change in time for user {fullname}""")
+        else:
+            bot.reply_to(message, f"Invalid format ! Format: hh:mm:ss\nE.g: 08:30:00")
+    else:
+        bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
+
 
 if __name__ == "__main__":
-    bot.infinity_polling()
+    bot.infinity_polling(timeout=50, long_polling_timeout=100)
