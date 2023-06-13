@@ -190,3 +190,17 @@ def set_user_time(username, in_dt, con):
         cursor.execute(query, val)
         con.commit()
         return 200
+
+def check_in_dt(con):
+    cursor = con.cursor()
+    query = f"SELECT userid, username, chat_room_id, in_dt FROM mentorku.userlist WHERE active = 1"
+    cursor.execute(query)
+    data = cursor.fetchall()
+    return data
+
+def recent_signin(con):
+    cursor = con.cursor()
+    query = f"""SELECT u.userid, u.username, u.chat_room_id, u.in_dt, a.time_stamp FROM mentorku.userlist u JOIN mentorku.absensi a ON u.userid = a.userid WHERE u.active = 1 AND a.status = 1 AND DATE(a.time_stamp) = DATE(CURRENT_TIMESTAMP())"""
+    cursor.execute(query)
+    data = cursor.fetchall()
+    return data

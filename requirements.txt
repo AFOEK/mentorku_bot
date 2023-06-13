@@ -5,3 +5,5 @@ tzlocal
 prettytable
 python-dateutil
 openpyxl
+aioschedule
+aiohttp
