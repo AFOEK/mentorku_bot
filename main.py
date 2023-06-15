@@ -61,7 +61,7 @@ async def signin(message):
 async def init(message):
     user_id = message.from_user.id
     chat_id = message.chat.id
-    member = bot.get_chat_member(user_id=user_id, chat_id=chat_id)
+    member = await bot.get_chat_member(user_id=user_id, chat_id=chat_id)
     username = member.user.username
     names = message.from_user.full_name
     status = member.status
@@ -83,7 +83,11 @@ async def help(message):
 /get_data {args}: Will sent attendence report based how many days, months, or year the user supplied. Possible options are 1d, 7d, 30d, 1w, 1m, 12m, and 1y.
 E.g: `/get_data 1d`, `/get_data 7d`, `/get_data 1m`, or `/get_data 1y`.
 /get_data_excel {args}: Will sent attendence report in Excel format based how many days, months, or year the user supplied. Possible options are 1d, 7d, 30d, 1w, 1m, 12m, and 1y.
-E.g: `/get_data_excel 1d`, `/get_data_excel 7d`, `/get_data_excel 1m`, or `/get_data_excel 1y`.""")
+E.g: `/get_data_excel 1d`, `/get_data_excel 7d`, `/get_data_excel 1m`, or `/get_data_excel 1y`.
+/sick: Sick leave.
+/leave {args}: On leave status, it is require how many days the user wanted to take its leave. (Max: 3 days and didn't take any leave within one month span).
+E.g: `/leave 2d`
+/set_in_time: Will set user's sign in time, this will determine if the user late or on time.""")
 
 @bot.message_handler(commands=['get_data'])
 async def get_data_day(message):
@@ -125,7 +129,7 @@ async def get_data_excel(message):
             await bot.reply_to(message, "Did you give how many days you want to pull ?\nPossible options: now, 1d, 7d, 30d, 1w, 1m, 12m, 1y")
 
         if(ret != 409):
-            bot.send_document(chat_id=chat_id, document=telebot.types.InputFile('Mentorku attendance '+ ret +'.xlsx'), reply_to_message_id=msg_id)
+            await bot.send_document(chat_id=chat_id, document=telebot.types.InputFile('Mentorku attendance '+ ret +'.xlsx'), reply_to_message_id=msg_id)
         else:
             await bot.reply_to(message, f"Did you give how many days you want to pull ?\nPossible options: now, 1d, 7d, 30d, 1w, 1m, 12m, 1y")
     else:
