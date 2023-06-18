@@ -1,11 +1,12 @@
 import mysql.connector
 from dotenv import load_dotenv
 import os
+import logging as log
 load_dotenv()
 
 def db_connect():
     try:
-        print("Connecting from local network")
+        log.info("Connecting from local network")
         DB_ADD = os.environ.get("DB_ADD")
         DB_USER = os.environ.get("DB_USER")
         DB_PASSWORD = os.environ.get("DB_PASSWORD")
@@ -18,7 +19,7 @@ def db_connect():
             database = ''.join(DB_NAME)
         )
     except:
-        print("Failed to connect from local network.\nConnecting using tunnel")
+        log.info("Failed to connect from local network. Connecting using tunnel")
         DB_ADD_TUNNEL = os.environ.get("DB_ADD_TUNNEL")
         DB_USER = os.environ.get("DB_USER")
         DB_PASSWORD = os.environ.get("DB_PASSWORD")

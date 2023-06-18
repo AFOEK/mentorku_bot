@@ -1,6 +1,8 @@
 import datetime
 from dateutil.relativedelta import *
 from openpyxl import Workbook
+import logging as log
+
 
 def sign_in(id_chat, msg_id, chat_tm, con):
     cursor = con.cursor()
@@ -10,7 +12,7 @@ def sign_in(id_chat, msg_id, chat_tm, con):
 
     cursor.execute(query, val)
     con.commit()
-    print(cursor.rowcount)
+    log.info(f"User wrote into database with row count: {cursor.rowcount}, function name {sign_in.__name__}")
 
 def sign_out(id_chat, msg_id, chat_tm, con):
     cursor = con.cursor()
@@ -20,7 +22,7 @@ def sign_out(id_chat, msg_id, chat_tm, con):
 
     cursor.execute(query, val)
     con.commit()
-    print(cursor.rowcount)
+    log.info(f"User wrote into database with row count: {cursor.rowcount}, function name {sign_out.__name__}")
 
 def init_data(user_id, username, admin_status, real_name, chat_id, con):
     cursor = con.cursor()
@@ -40,15 +42,19 @@ def init_data(user_id, username, admin_status, real_name, chat_id, con):
         val = (user_id, chat_id, username, real_name, int(status))
         cursor.execute(query, val)
         con.commit()
+        log.info(f"User wrote into database with row count: {cursor.rowcount}, function name {init_data.__name__} with return 200")
         return 200
     elif(data is not None):
         query = f"""UPDATE mentorku.userlist SET update_dt = CURRENT_TIMESTAMP, chat_room_id = "%s" WHERE userid = {user_id}"""
         val = (chat_id,)
         cursor.execute(query, val)
         con.commit()
+        log.info(f"User updated into database with row count: {cursor.rowcount}, function name {init_data.__name__} with return 204")
         return 204
     else:
+        log.info(f"No data write, function name {init_data.__name__} with return 409")
         return 409
+    
         
 def get_admin_stat(userid, con):
     cursor = con.cursor()
@@ -58,8 +64,10 @@ def get_admin_stat(userid, con):
     cursor.execute(query, val)
     data = cursor.fetchone()[0]
     if(data == 1):
+        log.info(f"Get admin status {True}, with function name {get_admin_stat.__name__}")
         return True
     else:
+        log.info(f"Get admin status {False}, with function name {get_admin_stat.__name__}")
         return False
     
 def get_time(id_chat, con):
@@ -68,6 +76,7 @@ def get_time(id_chat, con):
     query =f"SELECT in_dt FROM mentorku.userlist where userid = {id_chat}"
     cursor.execute(query)
     data = cursor.fetchone()[0]
+    log.info(f"Get in time, with function name {get_time.__name__}")
     return data
 
 def get_data(con, args):
@@ -77,22 +86,28 @@ def get_data(con, args):
         case "1d" | "now":
             query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) = %s"
             val = (date,)
+            log.info(f"Get data from view for 1 day")
         case "1w" | "7d":
             week = datetime.date.today() + relativedelta(days=+7)
             query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) BETWEEN %s and %s"
             val = (date,week)
+            log.info(f"Get data from view for 7 day")
         case "1m" | "30d":
             month = datetime.date.today() + relativedelta(months=+1)
             query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) BETWEEN %s and %s"
             val = (date,month)
+            log.info(f"Get data from view for 30 day")
         case "1y" | "12m":
             year = datetime.date.today() + relativedelta(years=+1)
             query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) BETWEEN %s and %s"
             val = (date,year)
+            log.info(f"Get data from view for 1 year")
         case _:
+            log.info(f"No data can be get")
             return 409
 
     cursor.execute(query, val)
+    log.info(f"Return data from database {get_data.__name__}")
     return cursor
 
 def get_data_excel(con, args):
@@ -107,25 +122,30 @@ def get_data_excel(con, args):
             val = (date,)
             ws.title = "Today attendances"
             periode = "today"
+            log.info(f"Get data from view for 1 day")
         case "1w" | "7d":
             week = datetime.date.today() + relativedelta(days=+7)
             query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) BETWEEN %s and %s"
             val = (date,week)
             ws.title = "This week attendances"
             periode = "week"
+            log.info(f"Get data from view for 7 day")
         case "1m" | "30d":
             month = datetime.date.today() + relativedelta(months=+1)
             query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) BETWEEN %s and %s"
             val = (date,month)
             ws.title = "This month attendances"
             periode = "month"
+            log.info(f"Get data from view for 30 day")
         case "1y" | "12m":
             year = datetime.date.today() + relativedelta(years=+1)
             query = f"SELECT * FROM mentorku.view_absensi WHERE DATE(time_stamp) BETWEEN %s and %s"
             val = (date,year)
             ws.title = "This year attendances"
             periode = "year"
+            log.info(f"Get data from view for 1 year")
         case _:
+            log.info(f"No data can be get")
             return 409
 
     cursor.execute(query, val)
@@ -138,6 +158,7 @@ def get_data_excel(con, args):
 
     wb_name = "Mentorku attendance " + periode
     wb.save(wb_name+".xlsx")
+    log.info(f"Saved a excel file with name {wb_name}.excel, with function name {get_data_excel.__name__}")
     return str(periode)
 
 def sick(id_chat, msg_id, chat_tm, con):
@@ -148,7 +169,7 @@ def sick(id_chat, msg_id, chat_tm, con):
 
     cursor.execute(query, val)
     con.commit()
-    print(cursor.rowcount)
+    log.info(f"User inserted data into database with row count: {cursor.rowcount}, function name: {sick.__name__}")
 
 
 def get_leave_status(userid, con):
@@ -159,8 +180,10 @@ def get_leave_status(userid, con):
     data = cursor.fetchall()
 
     if not data:
+        log.info(f"Get leave status with return {True}, with function name {get_leave_status.__name__}")
         return True
     else:
+        log.info(f"Get leave status with return {False}, with function name {get_leave_status.__name__}")
         return False
 
 def leave(id_chat, msg_id, chat_tm, dur, con):
@@ -171,9 +194,9 @@ def leave(id_chat, msg_id, chat_tm, dur, con):
         query = f"INSERT INTO mentorku.absensi (userid, chat_id, time_stamp, status) Values (%s, %s, %s, %s)"
         val = (id_chat, msg_id, times, '4')
         cursor.execute(query, val)
-        print("days " + str(i))
 
     con.commit()
+    log.info(f"User inserted data into database with row count: {cursor.rowcount}, with function name {leave.__name__}")
     return True
 
 def set_user_time(username, in_dt, con):
@@ -183,12 +206,14 @@ def set_user_time(username, in_dt, con):
     data = cursor.fetchall()
     
     if not data:
+        log.info(f"No data write, function name {set_user_time.__name__} with return 409")
         return 409
     else:
         query = f"""UPDATE mentorku.userlist SET in_dt = %s WHERE username = %s"""
         val = (in_dt,username)
         cursor.execute(query, val)
         con.commit()
+        log.info(f"User updated into database with row count: {cursor.rowcount}, function name {set_user_time.__name__} with return 200")
         return 200
 
 def check_in_dt(con):
@@ -196,6 +221,7 @@ def check_in_dt(con):
     query = f"SELECT userid, username, chat_room_id, in_dt FROM mentorku.userlist WHERE active = 1"
     cursor.execute(query)
     data = cursor.fetchall()
+    log.info(f"Get user in time, function name {check_in_dt.__name__}")
     return data
 
 def recent_signin(con):
@@ -203,4 +229,5 @@ def recent_signin(con):
     query = f"""SELECT u.userid, u.username, u.chat_room_id, u.in_dt, a.time_stamp FROM mentorku.userlist u JOIN mentorku.absensi a ON u.userid = a.userid WHERE u.active = 1 AND a.status = 1 AND DATE(a.time_stamp) = DATE(CURRENT_TIMESTAMP())"""
     cursor.execute(query)
     data = cursor.fetchall()
+    log.info(f"Get user in time, function name {recent_signin.__name__}")
     return data

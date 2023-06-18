@@ -14,7 +14,9 @@ from dotenv import load_dotenv
 from telebot.async_telebot import AsyncTeleBot
 
 load_dotenv()
-log.basicConfig(filename='mentorku.log', filemode='a', format='%(levelname)s - %(asctime)s - %(message)s', datefmt='%a, %d/%m/%Y %H:%M:%S')
+log.basicConfig(filename='mentorku.log', filemode='a', format='%(levelname)s - %(asctime)s - %(message)s', datefmt='%a, %d/%m/%Y %H:%M:%S', level=log.INFO)
+log.propagate = False
+log.info("Log started")
 
 token = ''.join(os.environ.get("BOT_TOKEN"))
 conn = db.db_connect()
@@ -186,7 +188,7 @@ async def leave_attendence(message):
     if(qry.get_leave_status(userid=user_id_chat, con=conn)):
         if(int(dur) >= 4):
             await bot.reply_to(message, "You can take 3 days leave only")
-            log.error(f"Leave day exceded 3 days !, requested by {messsage.from_user.full_name}")
+            log.error(f"Leave day exceded 3 days !, requested by {message.from_user.full_name}")
         else:
             ret = qry.leave(id_chat=user_id_chat, msg_id=message_id, chat_tm=times, dur=dur, con=conn)
 
@@ -218,7 +220,7 @@ async def set_in_time(message):
             ret = qry.set_user_time(username=username, in_dt=times, con=conn)
             if(ret == 200):
                 await bot.reply_to(message, f"""Succesfully change in time for user {fullname}""")
-                log.info(f"Successfuly changed {message.from_user.full_name} in time")
+                log.info(f"Successfuly changed {message.from_user.full_name} in time {times}")
         else:
             await bot.reply_to(message, f"Invalid format ! Format: hh:mm:ss\nE.g: 08:30:00")
             log.error("Invalid format")
@@ -280,4 +282,10 @@ if __name__ == "__main__":
     log.info("Schedule job fire")
     schedule.every().day.at("07:45").do(schedule_jobs)
     log.info("Schedule job fire")
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt as e:
+        log.error(repr(e))
+        conn.close()
+        log.info("Closing database")
+        log.warning("Program shutdown")
