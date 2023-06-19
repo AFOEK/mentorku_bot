@@ -10,8 +10,10 @@ def check_userlist_empty(id_chat, con):
     cursor.execute(query, val)
     data = cursor.fetchall()
     if not data:
+        log.info(f"User list empty, return {404}, function name {check_userlist_empty.__name__}")
         return 404
     else:
+        log.info(f"User list populated, return {404}, function name {check_userlist_empty.__name__}")
         return 200
 
 
