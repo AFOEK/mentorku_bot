@@ -3,23 +3,30 @@ from dateutil.relativedelta import *
 from openpyxl import Workbook
 import logging as log
 
+def check_userlist_empty(id_chat, con):
+    cursor = con.cursor()
+    query = f"SELECT * FROM mentorku.userlist WHERE userid = %s"
+    val = (id_chat,)
+    cursor.execute(query, val)
+    data = cursor.fetchall()
+    if not data:
+        return 404
+    else:
+        return 200
+
 
 def sign_in(id_chat, msg_id, chat_tm, con):
     cursor = con.cursor()
-
     query = f"INSERT INTO mentorku.absensi (userid, chat_id, time_stamp, status) Values (%s, %s, %s, %s)"
     val = (id_chat, msg_id, chat_tm, '1')
-
     cursor.execute(query, val)
     con.commit()
     log.info(f"User wrote into database with row count: {cursor.rowcount}, function name {sign_in.__name__}")
 
 def sign_out(id_chat, msg_id, chat_tm, con):
     cursor = con.cursor()
-
     query = f"INSERT INTO mentorku.absensi (userid, chat_id, time_stamp, status) Values (%s, %s, %s, %s)"
     val = (id_chat, msg_id, chat_tm, '2')
-
     cursor.execute(query, val)
     con.commit()
     log.info(f"User wrote into database with row count: {cursor.rowcount}, function name {sign_out.__name__}")

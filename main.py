@@ -30,38 +30,47 @@ local_timezone = tzlocal.get_localzone()
 @bot.message_handler(commands=['in'])
 async def signin(message):
     user_id_chat = message.from_user.id
-    user_name_chat = message.from_user.username
     message_id = message.message_id
     chat_time = message.date
-    sign_in_time = qry.get_time(id_chat=user_id_chat, con=conn)
-    times = datetime.datetime.fromtimestamp(chat_time, local_timezone)
-    times_delta = datetime.timedelta(hours=times.hour, minutes=times.minute, seconds=times.second)
-    try:
-        qry.sign_in(id_chat=user_id_chat, msg_id=message_id, chat_tm=times, con=conn)
-        if(times_delta > sign_in_time):
-            await bot.reply_to(message, f"{message.from_user.full_name} sign in at {times}. Sign in succesfully, but you're late for {times_delta - sign_in_time}")
-        else:
-            await bot.reply_to(message, f"{message.from_user.full_name} sign in at {times}. Sign in succesfully, you're on time")
-        log.info(f"User sign in, with name {message.from_user.full_name}")
-    except Exception as e:
-        await bot.reply_to(message, "Failed to sign in !")
-        log.error(repr(e))
+    ret = qry.check_userlist_empty(id_chat=user_id_chat,con=conn)
+    if(ret == 200):
+        sign_in_time = qry.get_time(id_chat=user_id_chat, con=conn)
+        times = datetime.datetime.fromtimestamp(chat_time, local_timezone)
+        times_delta = datetime.timedelta(hours=times.hour, minutes=times.minute, seconds=times.second)
+        try:
+            qry.sign_in(id_chat=user_id_chat, msg_id=message_id, chat_tm=times, con=conn)
+            if(times_delta > sign_in_time):
+                await bot.reply_to(message, f"{message.from_user.full_name} sign in at {times}. Sign in succesfully, but you're late for {times_delta - sign_in_time}")
+            else:
+                await bot.reply_to(message, f"{message.from_user.full_name} sign in at {times}. Sign in succesfully, you're on time")
+                log.info(f"User sign in, with name {message.from_user.full_name}")
+        except Exception as e:
+            await bot.reply_to(message, "Failed to sign in !")
+            log.error(repr(e))
+    elif(ret == 404):
+        await bot.reply_to(message, "User list table were empty please run `/init` first")
+        log.info(f"Failed to sign in, with name {message.from_user.full_name}")
 
 
 @bot.message_handler(commands=['out'])
 async def signin(message):
     user_id_chat = message.from_user.id
-    user_name_chat = message.from_user.username
     message_id = message.message_id
     chat_time = message.date
     times = datetime.datetime.fromtimestamp(chat_time, local_timezone)
-    try:
-        qry.sign_out(id_chat=user_id_chat, msg_id=message_id, chat_tm=times, con=conn)
-        await bot.reply_to(message, f"{message.from_user.full_name} out at {times}. Sign out succesfully")
-        log.info(f"User sign out, with name {message.from_user.full_name}")
-    except Exception as e:
-        await bot.reply_to(message, "Failed to sign out !")
-        log.error(repr(e))
+    ret = qry.check_userlist_empty(id_chat=user_id_chat,con=conn)
+    if(ret == 200):
+        try:
+            qry.sign_out(id_chat=user_id_chat, msg_id=message_id, chat_tm=times, con=conn)
+            await bot.reply_to(message, f"{message.from_user.full_name} out at {times}. Sign out succesfully")
+            log.info(f"User sign out, with name {message.from_user.full_name}")
+        except Exception as e:
+            await bot.reply_to(message, "Failed to sign out !")
+            log.error(repr(e))
+    else:
+        await bot.reply_to(message, "User list table were empty please run `/init` first")
+        log.info(f"Failed to sign out, with name {message.from_user.full_name}")
+    
 
 @bot.message_handler(commands=['init','start'])
 async def init(message):
