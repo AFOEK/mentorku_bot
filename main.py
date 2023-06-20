@@ -32,24 +32,32 @@ async def signin(message):
     user_id_chat = message.from_user.id
     message_id = message.message_id
     chat_time = message.date
-    ret = qry.check_userlist_empty(id_chat=user_id_chat,con=conn)
-    if(ret == 200):
-        sign_in_time = qry.get_time(id_chat=user_id_chat, con=conn)
-        times = datetime.datetime.fromtimestamp(chat_time, local_timezone)
-        times_delta = datetime.timedelta(hours=times.hour, minutes=times.minute, seconds=times.second)
-        try:
-            qry.sign_in(id_chat=user_id_chat, msg_id=message_id, chat_tm=times, con=conn)
-            if(times_delta > sign_in_time):
-                await bot.reply_to(message, f"{message.from_user.full_name} sign in at {times}. Sign in succesfully, but you're late for {times_delta - sign_in_time}")
-            else:
-                await bot.reply_to(message, f"{message.from_user.full_name} sign in at {times}. Sign in succesfully, you're on time")
-                log.info(f"User sign in, with name {message.from_user.full_name}")
-        except Exception as e:
-            await bot.reply_to(message, "Failed to sign in !")
-            log.error(repr(e))
-    elif(ret == 404):
-        await bot.reply_to(message, "User list table were empty please run `/init` first")
-        log.info(f"Failed to sign in, with name {message.from_user.full_name}")
+    id_chat = str(message.chat.id)
+    ret = qry.check_room_id(chatid=id_chat,id_chat=user_id_chat)
+    if(ret == 403):
+        log.warning("User called in from personal chat room")
+    elif(ret == 401):
+        log.warning("User called in from unknown chat room")
+    else:
+        log.info("User called in from a group chat")
+        ret = qry.check_userlist_empty(id_chat=user_id_chat,con=conn)
+        if(ret == 200):
+            sign_in_time = qry.get_time(id_chat=user_id_chat, con=conn)
+            times = datetime.datetime.fromtimestamp(chat_time, local_timezone)
+            times_delta = datetime.timedelta(hours=times.hour, minutes=times.minute, seconds=times.second)
+            try:
+                qry.sign_in(id_chat=user_id_chat, msg_id=message_id, chat_tm=times, con=conn)
+                if(times_delta > sign_in_time):
+                    await bot.reply_to(message, f"{message.from_user.full_name} sign in at {times}. Sign in succesfully, but you're late for {times_delta - sign_in_time}")
+                else:
+                    await bot.reply_to(message, f"{message.from_user.full_name} sign in at {times}. Sign in succesfully, you're on time")
+                    log.info(f"User sign in, with name {message.from_user.full_name}")
+            except Exception as e:
+                await bot.reply_to(message, "Failed to sign in !")
+                log.error(repr(e))
+        else:
+            await bot.reply_to(message, "User list table were empty please run `/init` first")
+            log.info(f"Failed to sign in, with name {message.from_user.full_name}")
 
 
 @bot.message_handler(commands=['out'])
@@ -58,46 +66,64 @@ async def signin(message):
     message_id = message.message_id
     chat_time = message.date
     times = datetime.datetime.fromtimestamp(chat_time, local_timezone)
-    ret = qry.check_userlist_empty(id_chat=user_id_chat,con=conn)
-    if(ret == 200):
-        try:
-            qry.sign_out(id_chat=user_id_chat, msg_id=message_id, chat_tm=times, con=conn)
-            await bot.reply_to(message, f"{message.from_user.full_name} out at {times}. Sign out succesfully")
-            log.info(f"User sign out, with name {message.from_user.full_name}")
-        except Exception as e:
-            await bot.reply_to(message, "Failed to sign out !")
-            log.error(repr(e))
+    id_chat = str(message.chat.id)
+    ret = qry.check_room_id(chatid=id_chat,id_chat=user_id_chat)
+    if(ret == 403):
+        log.warning("User called in from personal chat room")
+    elif(ret == 401):
+        log.warning("User called in from unknow chat room")
     else:
-        await bot.reply_to(message, "User list table were empty please run `/init` first")
-        log.info(f"Failed to sign out, with name {message.from_user.full_name}")
-    
+        log.info("User called in from a group chat")
+        ret = qry.check_userlist_empty(id_chat=user_id_chat,con=conn)
+        if(ret == 200):
+            try:
+                ret = qry.sign_out(id_chat=user_id_chat, msg_id=message_id, chat_tm=times, con=conn)
+                if(ret == 200):
+                    await bot.reply_to(message, f"{message.from_user.full_name} out at {times}. Sign out succesfully.")
+                    log.info(f"User sign out, with name {message.from_user.full_name}")
+                else:
+                    await bot.reply_to(message, f"You didn't sign in today please run `/in` before you sign out.")
+                    log.info(f"User failed to sign out due it didn't sign in !")
+            except Exception as e:
+                await bot.reply_to(message, "Failed to sign out !")
+                log.error(repr(e))
+        else:
+            await bot.reply_to(message, "User list table were empty please run `/init` first !")
+            log.info(f"Failed to sign out, with name {message.from_user.full_name}")
 
 @bot.message_handler(commands=['init','start'])
 async def init(message):
     user_id = message.from_user.id
     chat_id = message.chat.id
-    member = await bot.get_chat_member(user_id=user_id, chat_id=chat_id)
-    log.info("Get get chat member")
-    username = member.user.username
-    names = message.from_user.full_name
-    status = member.status
-    ret = qry.init_data(user_id = user_id, username = username, admin_status=status, real_name= names, chat_id = chat_id, con=conn)
-    if (ret == 200):
-        await bot.reply_to(message, f"Added new member to database, with name {names} at {datetime.datetime.fromtimestamp(message.date, local_timezone)}")
-        log.info(f"Successfuly insert data into database, with user {names}")
-    elif (ret == 204):
-        await bot.reply_to(message, f"Successfuly update for {username}")
-        log.info(f"Successfuly update data, with user {names}")
+    ret = qry.check_room_id(chatid=chat_id, id_chat=user_id)
+    if(ret == 403):
+        log.warning("User called in from personal chat room")
+    elif(ret == 401):
+        log.warning("User called in from unknown chat room")
     else:
-        await bot.reply_to(message, f"Failed to insert or update user ! For {username}")
-        log.error(f"Failed to insert user, with user {names}")
+        log.info("User called in from a group chat")
+        member = await bot.get_chat_member(user_id=user_id, chat_id=chat_id)
+        log.info("Get get chat member")
+        username = member.user.username
+        names = message.from_user.full_name
+        status = member.status
+        ret = qry.init_data(user_id = user_id, username = username, admin_status=status, real_name= names, chat_id = chat_id, con=conn)
+        if (ret == 200):
+            await bot.reply_to(message, f"Added new member to database, with name {names} at {datetime.datetime.fromtimestamp(message.date, local_timezone)}")
+            log.info(f"Successfuly insert data into database, with user {names}")
+        elif (ret == 204):
+            await bot.reply_to(message, f"Successfuly update for {username}")
+            log.info(f"Successfuly update data, with user {names}")
+        else:
+            await bot.reply_to(message, f"Failed to insert or update user ! For {username}")
+            log.error(f"Failed to insert user, with user {names}")
 
 @bot.message_handler(commands=['help'])
 async def help(message):
     await bot.reply_to(message, """
 /start or /init: Will read "user_name", "full_name", "user_id", and "member_status" of the user. This command just use once when new user joined to the group.
 /in: Sign in, if user late it will give how many hours, minutes, and seconds the user already passed.
-/out: Sign out.
+/out: Sign out, if user didn't sign in the same day, that user cannot sign out.
 /help: Will show this exact message.
 /get_data {args}: Will sent attendence report based how many days, months, or year the user supplied. Possible options are 1d, 7d, 30d, 1w, 1m, 12m, and 1y.
 E.g: `/get_data 1d`, `/get_data 7d`, `/get_data 1m`, or `/get_data 1y`.

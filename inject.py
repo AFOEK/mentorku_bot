@@ -1,7 +1,19 @@
+import re
 import datetime
 from dateutil.relativedelta import *
 from openpyxl import Workbook
 import logging as log
+
+def check_room_id(id_chat, chatid):
+    if(id_chat == chatid):
+        log.warning(f"User id and user chat room id are same {id_chat} == {chatid}")
+        return 403
+    elif(re.findall("-",chatid)):
+        log.warning(f"User didn't in a group chat room id {id_chat}")
+        return 200
+    else:
+        log.warning(f"User didn't in an unknown room")
+        return 401
 
 def check_userlist_empty(id_chat, con):
     cursor = con.cursor()
@@ -13,7 +25,7 @@ def check_userlist_empty(id_chat, con):
         log.info(f"User list empty, return {404}, function name {check_userlist_empty.__name__}")
         return 404
     else:
-        log.info(f"User list populated, return {404}, function name {check_userlist_empty.__name__}")
+        log.info(f"User list populated, return {200}, function name {check_userlist_empty.__name__}")
         return 200
 
 
@@ -27,11 +39,20 @@ def sign_in(id_chat, msg_id, chat_tm, con):
 
 def sign_out(id_chat, msg_id, chat_tm, con):
     cursor = con.cursor()
-    query = f"INSERT INTO mentorku.absensi (userid, chat_id, time_stamp, status) Values (%s, %s, %s, %s)"
-    val = (id_chat, msg_id, chat_tm, '2')
-    cursor.execute(query, val)
-    con.commit()
-    log.info(f"User wrote into database with row count: {cursor.rowcount}, function name {sign_out.__name__}")
+    query = f"SELECT * FROM mentorku.absensi WHERE userid = {id_chat} AND status = 1 AND DATE(time_stamp) = DATE(CURRENT_TIMESTAMP)"
+    cursor.execute(query)
+    data = cursor.fetchone()
+    if data is not None:
+        query = f"INSERT INTO mentorku.absensi (userid, chat_id, time_stamp, status) Values (%s, %s, %s, %s)"
+        val = (id_chat, msg_id, chat_tm, '2')
+        cursor.execute(query, val)
+        con.commit()
+        log.info(f"User wrote into database with row count: {cursor.rowcount}, with return value {200}, function name {sign_out.__name__}")
+        return 200
+    else:
+        log.info(f"User didn't sign in before, with return value {404}, function name {sign_out.__name__}")
+        return 404
+
 
 def init_data(user_id, username, admin_status, real_name, chat_id, con):
     cursor = con.cursor()
