@@ -2,7 +2,7 @@ import os
 import re
 import telebot
 import datetime
-import tzlocal
+import pytz
 import asyncio
 import logging as log
 import aioschedule as schedule
@@ -25,7 +25,7 @@ log.info('Database is connected')
 bot = AsyncTeleBot(token)
 log.info("bot succesfully connected")
 
-local_timezone = tzlocal.get_localzone()
+local_timezone = pytz.timezone('Asia/Jakarta')
 
 @bot.message_handler(commands=['in'])
 async def signin(message):
@@ -35,10 +35,10 @@ async def signin(message):
     id_chat = str(message.chat.id)
     ret = qry.check_room_id(chatid=id_chat,id_chat=user_id_chat)
     if(ret == 403):
-        bot.reply_to(message, "You called this bot from your personal chat room, please call it from appropiate group")
+        await bot.reply_to(message, "You called this bot from your personal chat room, please call it from appropiate group")
         log.warning("User called in from personal chat room")
     elif(ret == 401):
-        bot.reply_to(message, "You called this bot from unknown chat room, please call it from appropiate group")
+        await bot.reply_to(message, "You called this bot from unknown chat room, please call it from appropiate group")
         log.warning("User called in from unknown chat room")
     else:
         log.info("User called in from a group chat")
@@ -71,8 +71,10 @@ async def signin(message):
     id_chat = str(message.chat.id)
     ret = qry.check_room_id(chatid=id_chat,id_chat=user_id_chat)
     if(ret == 403):
+        await bot.reply_to(message, "You called this bot from your personal chat room, please call it from appropiate group")
         log.warning("User called in from personal chat room")
     elif(ret == 401):
+        await bot.reply_to(message, "You called this bot from unknown chat room, please call it from appropiate group")
         log.warning("User called in from unknow chat room")
     else:
         log.info("User called in from a group chat")
@@ -99,8 +101,10 @@ async def init(message):
     chat_id = message.chat.id
     ret = qry.check_room_id(chatid=chat_id, id_chat=user_id)
     if(ret == 403):
+        await bot.reply_to(message, "You called this bot from your personal chat room, please call it from appropiate group")
         log.warning("User called in from personal chat room")
     elif(ret == 401):
+        await bot.reply_to(message, "You called this bot from unknown chat room, please call it from appropiate group")
         log.warning("User called in from unknown chat room")
     else:
         log.info("User called in from a group chat")
@@ -200,13 +204,23 @@ async def sick_attendence(message):
     message_id = message.message_id
     chat_time = message.date
     times = datetime.datetime.fromtimestamp(chat_time, local_timezone)
-    try:
-        qry.sick(id_chat=user_id_chat, msg_id=message_id, chat_tm=times, con=conn)
-        await bot.reply_to(message, f"{message.from_user.full_name} sick leave at {times}. Get well soon")
-        log.info(f"Successfuly insert data, with user {message.from_user.full_name}")
-    except:
-        await bot.reply_to(message, "Failed to set sick leave !")
-        log.error(f"failed to insert to database, with user {message.from_user.full_name}")
+    id_chat = str(message.chat.id)
+    ret = qry.check_room_id(chatid=id_chat,id_chat=user_id_chat)
+    if(ret == 403):
+        await bot.reply_to(message, "You called this bot from your personal chat room, please call it from appropiate group")
+        log.warning("User called in from personal chat room")
+    elif(ret == 401):
+        await bot.reply_to(message, "You called this bot from unknown chat room, please call it from appropiate group")
+        log.warning("User called in from unknow chat room")
+    else:
+        log.info("User called in from a group chat")
+        try:
+            qry.sick(id_chat=user_id_chat, msg_id=message_id, chat_tm=times, con=conn)
+            await bot.reply_to(message, f"{message.from_user.full_name} sick leave at {times}. Get well soon")
+            log.info(f"Successfuly insert data, with user {message.from_user.full_name}")
+        except:
+            await bot.reply_to(message, "Failed to set sick leave !")
+            log.error(f"failed to insert to database, with user {message.from_user.full_name}")
 
 @bot.message_handler(commands=['leave'])
 async def leave_attendence(message):
@@ -214,56 +228,74 @@ async def leave_attendence(message):
     message_id = message.message_id
     chat_time = message.date
     times = datetime.datetime.fromtimestamp(chat_time, local_timezone)
-    if(message.text != "" or message.text is not None):
-        args = message.text.split()[1:]
+    id_chat = str(message.chat.id)
+    ret = qry.check_room_id(chatid=id_chat,id_chat=user_id_chat)
+    if(ret == 403):
+        await bot.reply_to(message, "You called this bot from your personal chat room, please call it from appropiate group")
+        log.warning("User called in from personal chat room")
+    elif(ret == 401):
+        await bot.reply_to(message, "You called this bot from unknown chat room, please call it from appropiate group")
+        log.warning("User called in from unknow chat room")
     else:
-        await bot.reply_to(message, "Did you give how many days you want to take on leave ?")
-        log.error("Invalid args")
-
-    dur = ''.join(re.findall("[0-9]", args[0]))
-
-    if(qry.get_leave_status(userid=user_id_chat, con=conn)):
-        if(int(dur) >= 4):
-            await bot.reply_to(message, "You can take 3 days leave only")
-            log.error(f"Leave day exceded 3 days !, requested by {message.from_user.full_name}")
-        else:
-            ret = qry.leave(id_chat=user_id_chat, msg_id=message_id, chat_tm=times, dur=dur, con=conn)
-
-        if(ret):
-            await bot.reply_to(message, "You requested leave for " + dur + " days")
+        log.info("User called in from a group chat")
+        if(message.text != "" or message.text is not None):
+            args = message.text.split()[1:]
         else:
             await bot.reply_to(message, "Did you give how many days you want to take on leave ?")
             log.error("Invalid args")
-    else:
-        await bot.reply_to(message, "You can take 3 days leave in ONE month, if any urgent matters please contact your supervisior !")
-        log.error(f"Leave day exceded 3 days in 1 month !, requested by {message.from_user.full_name}")
+
+        dur = ''.join(re.findall("[0-9]", args[0]))
+
+        if(qry.get_leave_status(userid=user_id_chat, con=conn)):
+            if(int(dur) >= 4):
+                await bot.reply_to(message, "You can take 3 days leave only")
+                log.error(f"Leave day exceded 3 days !, requested by {message.from_user.full_name}")
+            else:
+                ret = qry.leave(id_chat=user_id_chat, msg_id=message_id, chat_tm=times, dur=dur, con=conn)
+
+            if(ret):
+                await bot.reply_to(message, "You requested leave for " + dur + " days")
+            else:
+                await bot.reply_to(message, "Did you give how many days you want to take on leave ?")
+                log.error("Invalid args")
+        else:
+            await bot.reply_to(message, "You can take 3 days leave in ONE month, if any urgent matters please contact your supervisior !")
+            log.error(f"Leave day exceded 3 days in 1 month !, requested by {message.from_user.full_name}")
     
 @bot.message_handler(commands=['set_in_time'])
 async def set_in_time(message):
     fullname = message.from_user.full_name
     user_id = message.from_user.id
-
-    admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
-    if(admin_stat):
-        if(message.text != "" or message.text is not None):
-            args = message.text.split()[1:3]
-        else:
-            await bot.reply_to(message, "Did you give what time the user should sign in ? Format: hh:mm:ss")
-            log.error(f"Wrong format or Null, input get {message.text}")
-
-        times = ''.join(args[1])
-        username = ''.join(args[0])
-        if(re.search("[0-9][0-9]:[0-9][0-9]:[0-9][0-9]", times)):
-            ret = qry.set_user_time(username=username, in_dt=times, con=conn)
-            if(ret == 200):
-                await bot.reply_to(message, f"""Succesfully change in time for user {fullname}""")
-                log.info(f"Successfuly changed {message.from_user.full_name} in time {times}")
-        else:
-            await bot.reply_to(message, f"Invalid format ! Format: hh:mm:ss\nE.g: 08:30:00")
-            log.error("Invalid format")
+    id_chat = str(message.chat.id)
+    ret = qry.check_room_id(chatid=id_chat,id_chat=user_id_chat)
+    if(ret == 403):
+        await bot.reply_to(message, "You called this bot from your personal chat room, please call it from appropiate group")
+        log.warning("User called in from personal chat room")
+    elif(ret == 401):
+        await bot.reply_to(message, "You called this bot from unknown chat room, please call it from appropiate group")
+        log.warning("User called in from unknow chat room")
     else:
-        await bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
-        log.error("Wrong permission !")
+        log.info("User called in from a group chat")
+        admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
+        if(admin_stat):
+            if(message.text != "" or message.text is not None):
+                args = message.text.split()[1:3]
+            else:
+                await bot.reply_to(message, "Did you give what time the user should sign in ? Format: hh:mm:ss")
+                log.error(f"Wrong format or Null, input get {message.text}")
+            times = ''.join(args[1])
+            username = ''.join(args[0])
+            if(re.search("[0-9][0-9]:[0-9][0-9]:[0-9][0-9]", times)):
+                ret = qry.set_user_time(username=username, in_dt=times, con=conn)
+                if(ret == 200):
+                    await bot.reply_to(message, f"""Succesfully change in time for user {fullname}""")
+                    log.info(f"Successfuly changed {message.from_user.full_name} at time {times}")
+            else:
+                await bot.reply_to(message, f"Invalid format ! Format: hh:mm:ss\nE.g: 08:30:00")
+                log.error("Invalid format")
+        else:
+            await bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
+            log.error("Wrong permission !")
 
 async def schedule_jobs():
     in_dt = qry.check_in_dt(con = conn)

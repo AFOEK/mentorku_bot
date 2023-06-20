@@ -1,7 +1,7 @@
 pyTelegramBotAPI
 mysql-connector-python
 python-dotenv
-tzlocal
+pytz
 prettytable
 python-dateutil
 openpyxl

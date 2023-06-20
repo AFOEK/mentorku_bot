@@ -8,11 +8,11 @@ def check_room_id(id_chat, chatid):
     if(id_chat == chatid):
         log.warning(f"User id and user chat room id are same {id_chat} == {chatid}")
         return 403
-    elif(re.findall("-",chatid)):
-        log.warning(f"User didn't in a group chat room id {id_chat}")
+    elif(re.findall("-",str(chatid))):
+        log.warning(f"User called in a group chat room id {id_chat}")
         return 200
     else:
-        log.warning(f"User didn't in an unknown room")
+        log.warning(f"User called from an unknown room")
         return 401
 
 def check_userlist_empty(id_chat, con):
@@ -38,7 +38,7 @@ def sign_in(id_chat, msg_id, chat_tm, con):
     log.info(f"User wrote into database with row count: {cursor.rowcount}, function name {sign_in.__name__}")
 
 def sign_out(id_chat, msg_id, chat_tm, con):
-    cursor = con.cursor()
+    cursor = con.cursor(buffered=True)
     query = f"SELECT * FROM mentorku.absensi WHERE userid = {id_chat} AND status = 1 AND DATE(time_stamp) = DATE(CURRENT_TIMESTAMP)"
     cursor.execute(query)
     data = cursor.fetchone()
@@ -61,7 +61,7 @@ def init_data(user_id, username, admin_status, real_name, chat_id, con):
     cursor.execute(query)
     data=cursor.fetchone()
     
-    if(admin_status == "administrator" or admin_status == "creator"):
+    if(admin_status == "administrator" or admin_status == "creator" or admin_status == "owner"):
         status = 1
     else:
         status = 0
