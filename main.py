@@ -35,8 +35,10 @@ async def signin(message):
     id_chat = str(message.chat.id)
     ret = qry.check_room_id(chatid=id_chat,id_chat=user_id_chat)
     if(ret == 403):
+        bot.reply_to(message, "You called this bot from your personal chat room, please call it from appropiate group")
         log.warning("User called in from personal chat room")
     elif(ret == 401):
+        bot.reply_to(message, "You called this bot from unknown chat room, please call it from appropiate group")
         log.warning("User called in from unknown chat room")
     else:
         log.info("User called in from a group chat")
