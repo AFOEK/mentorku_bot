@@ -5,7 +5,6 @@ import datetime
 import pytz
 import asyncio
 import logging as log
-import aioschedule as schedule
 import connector as db
 import inject as qry
 import prettytable as table
@@ -267,7 +266,7 @@ async def set_in_time(message):
     fullname = message.from_user.full_name
     user_id = message.from_user.id
     id_chat = str(message.chat.id)
-    ret = qry.check_room_id(chatid=id_chat,id_chat=user_id_chat)
+    ret = qry.check_room_id(chatid=id_chat,id_chat=user_id)
     if(ret == 403):
         await bot.reply_to(message, "You called this bot from your personal chat room, please call it from appropiate group")
         log.warning("User called in from personal chat room")
@@ -297,60 +296,10 @@ async def set_in_time(message):
             await bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
             log.error("Wrong permission !")
 
-async def schedule_jobs():
-    in_dt = qry.check_in_dt(con = conn)
-    recent_signin = qry.recent_signin(con = conn)
-    try:
-        if not recent_signin:
-            for i in in_dt:
-                time_now = datetime.datetime.now()
-                times_delta_now = datetime.timedelta(hours=time_now.hour, minutes=time_now.minute, seconds=time_now.second)
-                times = i[3]
-                deltas = times_delta_now - times
-                if(times <= times_delta_now):
-                    await bot.send_message(chat_id=i[2], text = f"""<a href="tg://user?id={i[0]}]">{i[1]}</a>, your're going to late, please sign in ASAP. <b>You have {deltas} more !</b>""", parse_mode="HTML")
-                    log.info(f"Sent reminder for username {i[1]}")
-        else:
-            for j in recent_signin:
-                if(j[1] == i[1]):
-                    pass
-                else:
-                    for i in in_dt:
-                        time_now = datetime.datetime.now()
-                        times_delta_now = datetime.timedelta(hours=time_now.hour, minutes=time_now.minute, seconds=time_now.second)
-                        times = i[3]
-                        deltas = times_delta_now - times
-                        if(times <= times_delta_now):
-                            await bot.send_message(chat_id=i[2], text = f"""<a href="tg://user?id={i[0]}]">{i[1]}</a>, your're going to late, please sign in ASAP. <b>You have {deltas} more !</b>""", parse_mode="HTML")
-                            log.info(f"Sent reminder for username {i[1]}")
-    except Exception as e:
-        log.error(repr(e))
-
-async def scheduler():
-    while True:
-        await schedule.run_pending()
-        await asyncio.sleep(1)
-
 async def main():
-    await asyncio.gather(bot.infinity_polling(), scheduler())
+    await asyncio.gather(bot.infinity_polling())
 
 if __name__ == "__main__":
-    schedule.every().day.at("06:00").do(schedule_jobs)
-    log.info("Schedule job fire")
-    schedule.every().day.at("06:15").do(schedule_jobs)
-    log.info("Schedule job fire")
-    schedule.every().day.at("06:30").do(schedule_jobs)
-    log.info("Schedule job fire")
-    schedule.every().day.at("06:45").do(schedule_jobs)
-    log.info("Schedule job fire")
-    schedule.every().day.at("07:00").do(schedule_jobs)
-    log.info("Schedule job fire")
-    schedule.every().day.at("07:15").do(schedule_jobs)
-    log.info("Schedule job fire")
-    schedule.every().day.at("07:30").do(schedule_jobs)
-    log.info("Schedule job fire")
-    schedule.every().day.at("07:45").do(schedule_jobs)
-    log.info("Schedule job fire")
     try:
         asyncio.run(main())
     except KeyboardInterrupt as e:

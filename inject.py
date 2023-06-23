@@ -245,19 +245,3 @@ def set_user_time(username, in_dt, con):
         con.commit()
         log.info(f"User updated into database with row count: {cursor.rowcount}, function name {set_user_time.__name__} with return 200")
         return 200
-
-def check_in_dt(con):
-    cursor = con.cursor()
-    query = f"SELECT userid, username, chat_room_id, in_dt FROM mentorku.userlist WHERE active = 1"
-    cursor.execute(query)
-    data = cursor.fetchall()
-    log.info(f"Get user in time, function name {check_in_dt.__name__}")
-    return data
-
-def recent_signin(con):
-    cursor = con.cursor()
-    query = f"""SELECT u.userid, u.username, u.chat_room_id, u.in_dt, a.time_stamp FROM mentorku.userlist u JOIN mentorku.absensi a ON u.userid = a.userid WHERE u.active = 1 AND a.status = 1 AND DATE(a.time_stamp) = DATE(CURRENT_TIMESTAMP())"""
-    cursor.execute(query)
-    data = cursor.fetchall()
-    log.info(f"Get user in time, function name {recent_signin.__name__}")
-    return data

@@ -16,7 +16,9 @@ def db_connect():
             host = ''.join(DB_ADD),
             user = ''.join(DB_USER),
             password = ''.join(DB_PASSWORD),
-            database = ''.join(DB_NAME)
+            database = ''.join(DB_NAME),
+            pool_name = "Mentorku",
+            pool_size = 3
         )
     except:
         log.info("Failed to connect from local network. Connecting using tunnel")
@@ -31,7 +33,9 @@ def db_connect():
             user = ''.join(DB_USER),
             password = ''.join(DB_PASSWORD),
             database = ''.join(DB_NAME),
-            port = ''.join(DB_PORT_TUNNEL)
+            port = ''.join(DB_PORT_TUNNEL),
+            pool_name = "Mentorku",
+            pool_size = 3
         )
 
     return db
