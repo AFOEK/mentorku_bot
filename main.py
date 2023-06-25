@@ -33,11 +33,8 @@ async def signin(message):
     message_id = message.message_id
     chat_time = message.date
     id_chat = str(message.chat.id)
-
-    try:
-        ret = qry.check_room_id(chatid=id_chat,id_chat=user_id_chat)
-    except mysql.errors.OperationalError:
-        db.reconnect(attempts=5, delay=1)
+    ret = qry.check_room_id(chatid=id_chat,id_chat=user_id_chat)
+    
     
     if(ret == 403):
         await bot.reply_to(message, "You called this bot from your personal chat room, please call it from appropiate group")
@@ -47,7 +44,10 @@ async def signin(message):
         log.warning("User called in from unknown chat room")
     else:
         log.info("User called in from a group chat")
-        ret = qry.check_userlist_empty(id_chat=user_id_chat,con=conn)
+        try:
+            ret = qry.check_userlist_empty(id_chat=user_id_chat,con=conn)
+        except mysql.errors.OperationalError:
+            db.db_connect().reconnect(attempts=5, delay=1)
         if(ret == 200):
             sign_in_time = qry.get_time(id_chat=user_id_chat, con=conn)
             times = datetime.datetime.fromtimestamp(chat_time, local_timezone)
@@ -75,11 +75,7 @@ async def signin(message):
     times = datetime.datetime.fromtimestamp(chat_time, local_timezone)
     id_chat = str(message.chat.id)
 
-    try:
-        ret = qry.check_room_id(chatid=id_chat,id_chat=user_id_chat)
-    except mysql.errors.OperationalError:
-        db.reconnect(attempts=5, delay=1)
-    
+    ret = qry.check_room_id(chatid=id_chat,id_chat=user_id_chat)
     if(ret == 403):
         await bot.reply_to(message, "You called this bot from your personal chat room, please call it from appropiate group")
         log.warning("User called in from personal chat room")
@@ -98,6 +94,8 @@ async def signin(message):
                 else:
                     await bot.reply_to(message, f"You didn't sign in today please run `/in` before you sign out.")
                     log.info(f"User failed to sign out due it didn't sign in !")
+            except mysql.errors.OperationalError:
+                db.db_connect().reconnect(attempts=5, delay=1)
             except Exception as e:
                 await bot.reply_to(message, "Failed to sign out !")
                 log.error(repr(e))
@@ -109,10 +107,7 @@ async def signin(message):
 async def init(message):
     user_id = message.from_user.id
     chat_id = message.chat.id
-    try:
-        ret = qry.check_room_id(chatid=chat_id, id_chat=user_id)
-    except mysql.errors.OperationalError:
-        db.reconnect(attempts=5, delay=1)
+    ret = qry.check_room_id(chatid=chat_id, id_chat=user_id)
     
     if(ret == 403):
         await bot.reply_to(message, "You called this bot from your personal chat room, please call it from appropiate group")
@@ -127,7 +122,11 @@ async def init(message):
         username = member.user.username
         names = message.from_user.full_name
         status = member.status
-        ret = qry.init_data(user_id = user_id, username = username, admin_status=status, real_name= names, chat_id = chat_id, con=conn)
+        try:
+            ret = qry.init_data(user_id = user_id, username = username, admin_status=status, real_name= names, chat_id = chat_id, con=conn)
+        except mysql.errors.OperationalError:
+            db.db_connect().reconnect(attempts=5, delay=1)
+
         if (ret == 200):
             await bot.reply_to(message, f"Added new member to database, with name {names} at {datetime.datetime.fromtimestamp(message.date, local_timezone)}")
             log.info(f"Successfuly insert data into database, with user {names}")
@@ -153,7 +152,8 @@ E.g: `/get_data_excel 1d`, `/get_data_excel 7d`, `/get_data_excel 1m`, or `/get_
 /sick: Sick leave.
 /leave {args}: On leave status, it is require how many days the user wanted to take its leave. (Max: 3 days and didn't take any leave within one month span).
 E.g: `/leave 2d`
-/set_in_time: Will set user's sign in time, this will determine if the user late or on time.""")
+/set_in_time {args0} {args1}: Will set user's sign in time, this will determine if the user late or on time. it's required telegram username and sign in time with format hh:mm:ss.
+E.g: `/set_in_time telegram_username 08:00:00`""")
     log.info("Successfuly displaying help")
 
 @bot.message_handler(commands=['get_data'])
@@ -163,7 +163,7 @@ async def get_data_day(message):
         admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
         log.info("Get admin stat")
     except mysql.errors.OperationalError:
-        db.reconnect(attempts=5, delay=1)
+        db.db_connect().reconnect(attempts=5, delay=1)
     
     if(message.text != "" or message.text is not None):
         try:
@@ -201,7 +201,7 @@ async def get_data_excel(message):
     try:
         admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
     except mysql.errors.OperationalError:
-        db.reconnect(attempts=5, delay=1)
+        db.db_connect().reconnect(attempts=5, delay=1)
     
     if(message.text != "" or message.text is not None):
         try:
@@ -238,10 +238,7 @@ async def sick_attendence(message):
     times = datetime.datetime.fromtimestamp(chat_time, local_timezone)
     id_chat = str(message.chat.id)
 
-    try:
-        ret = qry.check_room_id(chatid=id_chat,id_chat=user_id_chat)
-    except mysql.errors.OperationalError:
-        db.reconnect(attempts=5, delay=1)
+    ret = qry.check_room_id(chatid=id_chat,id_chat=user_id_chat)
     
     if(ret == 403):
         await bot.reply_to(message, "You called this bot from your personal chat room, please call it from appropiate group")
@@ -255,6 +252,8 @@ async def sick_attendence(message):
             qry.sick(id_chat=user_id_chat, msg_id=message_id, chat_tm=times, con=conn)
             await bot.reply_to(message, f"{message.from_user.full_name} sick leave at {times}. Get well soon")
             log.info(f"Successfuly insert data, with user {message.from_user.full_name}")
+        except mysql.errors.OperationalError:
+            db.db_connect().reconnect(attempts=5, delay=1)
         except:
             await bot.reply_to(message, "Failed to set sick leave !")
             log.error(f"failed to insert to database, with user {message.from_user.full_name}")
@@ -267,10 +266,7 @@ async def leave_attendence(message):
     times = datetime.datetime.fromtimestamp(chat_time, local_timezone)
     id_chat = str(message.chat.id)
 
-    try:
-        ret = qry.check_room_id(chatid=id_chat,id_chat=user_id_chat)
-    except mysql.errors.OperationalError:
-        db.reconnect(attempts=5, delay=1)
+    ret = qry.check_room_id(chatid=id_chat,id_chat=user_id_chat)
     
     if(ret == 403):
         await bot.reply_to(message, "You called this bot from your personal chat room, please call it from appropiate group")
@@ -292,32 +288,32 @@ async def leave_attendence(message):
 
         dur = ''.join(re.findall("[0-9]", args[0]))
 
-        if(qry.get_leave_status(userid=user_id_chat, con=conn)):
-            if(int(dur) >= 4):
-                await bot.reply_to(message, "You can take 3 days leave only")
-                log.error(f"Leave day exceded 3 days !, requested by {message.from_user.full_name}")
-            else:
-                ret = qry.leave(id_chat=user_id_chat, msg_id=message_id, chat_tm=times, dur=dur, con=conn)
+        try:
+            if(qry.get_leave_status(userid=user_id_chat, con=conn)):
+                if(int(dur) >= 4):
+                    await bot.reply_to(message, "You can take 3 days leave only")
+                    log.error(f"Leave day exceded 3 days !, requested by {message.from_user.full_name}")
+                else:
+                    ret = qry.leave(id_chat=user_id_chat, msg_id=message_id, chat_tm=times, dur=dur, con=conn)
 
-            if(ret):
-                await bot.reply_to(message, "You requested leave for " + dur + " days")
+                if(ret):
+                    await bot.reply_to(message, "You requested leave for " + dur + " days")
+                else:
+                    await bot.reply_to(message, "Did you give how many days you want to take on leave ?")
+                    log.error("Invalid args")
             else:
-                await bot.reply_to(message, "Did you give how many days you want to take on leave ?")
-                log.error("Invalid args")
-        else:
-            await bot.reply_to(message, "You can take 3 days leave in ONE month, if any urgent matters please contact your supervisior !")
-            log.error(f"Leave day exceded 3 days in 1 month !, requested by {message.from_user.full_name}")
-    
+                await bot.reply_to(message, "You can take 3 days leave in ONE month, if any urgent matters please contact your supervisior !")
+                log.error(f"Leave day exceded 3 days in 1 month !, requested by {message.from_user.full_name}")
+        except mysql.errors.OperationalError:
+            db.db_connect().reconnect(attempts=5, delay=1)
+
 @bot.message_handler(commands=['set_in_time'])
 async def set_in_time(message):
     fullname = message.from_user.full_name
     user_id = message.from_user.id
     id_chat = str(message.chat.id)
 
-    try:
-        ret = qry.check_room_id(chatid=id_chat,id_chat=user_id)
-    except mysql.errors.OperationalError:
-        db.reconnect(attempts=5, delay=1)
+    ret = qry.check_room_id(chatid=id_chat,id_chat=user_id)
     
     if(ret == 403):
         await bot.reply_to(message, "You called this bot from your personal chat room, please call it from appropiate group")
@@ -327,30 +323,67 @@ async def set_in_time(message):
         log.warning("User called in from unknow chat room")
     else:
         log.info("User called in from a group chat")
+        try:
+            admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
+            if(admin_stat):
+                if(message.text != "" or message.text is not None):
+                    try:
+                        args = message.text.split()[1:3]
+                    except Exception as e:
+                        await bot.reply_to(message, "Did you give any arguments ? set_in_time <username> <time hh:mm::ss>")
+                        log.error(f"Empty args. {repr(e)}")
+                else:
+                    await bot.reply_to(message, "Did you give what time the user should sign in ? Format: hh:mm:ss")
+                    log.error(f"Wrong format or Null, input get {message.text}")
+                times = ''.join(args[1])
+                username = ''.join(args[0])
+                if(re.search("[0-9][0-9]:[0-9][0-9]:[0-9][0-9]", times)):
+                    ret = qry.set_user_time(username=username, in_dt=times, con=conn)
+                    if(ret == 200):
+                        await bot.reply_to(message, f"""Succesfully change in time for user {fullname}""")
+                        log.info(f"Successfuly changed {message.from_user.full_name} at time {times}")
+                else:
+                    await bot.reply_to(message, f"Invalid format ! Format: hh:mm:ss\nE.g: 08:30:00")
+                    log.error("Invalid format")
+            else:
+                await bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
+                log.error("Wrong permission !")
+        except mysql.errors.OperationalError:
+            db.db_connect().reconnect(attempts=5, delay=1)
+
+@bot.message_handler(commands=['get_log'])
+async def get_log(message):
+    user_id = message.from_user.id
+    chat_id = message.chat.id
+    msg_id = message.message_id
+
+    try:
         admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
         if(admin_stat):
-            if(message.text != "" or message.text is not None):
+            num_newlines = 0
+            with open("mentorku.log", 'r') as logs:
                 try:
-                    args = message.text.split()[1:3]
-                except Exception as e:
-                    await bot.reply_to(message, "Did you give any arguments ? set_in_time <username> <time hh:mm::ss>")
-                    log.error(f"Empty args. {repr(e)}")
+                    logs.seek(-2, os.SEEK_END)    
+                    while num_newlines < 10:
+                        logs.seek(-2, os.SEEK_CUR)
+                        if logs.read(1) == b'\n':
+                            num_newlines += 1
+                except OSError:
+                    logs.seek(0)
+                last_line = logs.readlines()
+
+            if (len(last_line) > 4095):
+                for i in range(0, len(last_line), 4095):
+                    await bot.reply_to(message, text=last_line[i:i+4095])
             else:
-                await bot.reply_to(message, "Did you give what time the user should sign in ? Format: hh:mm:ss")
-                log.error(f"Wrong format or Null, input get {message.text}")
-            times = ''.join(args[1])
-            username = ''.join(args[0])
-            if(re.search("[0-9][0-9]:[0-9][0-9]:[0-9][0-9]", times)):
-                ret = qry.set_user_time(username=username, in_dt=times, con=conn)
-                if(ret == 200):
-                    await bot.reply_to(message, f"""Succesfully change in time for user {fullname}""")
-                    log.info(f"Successfuly changed {message.from_user.full_name} at time {times}")
-            else:
-                await bot.reply_to(message, f"Invalid format ! Format: hh:mm:ss\nE.g: 08:30:00")
-                log.error("Invalid format")
+                await bot.reply_to(message, text=last_line)
+            
+            log.info(f"Sent logs info for {message.from_user.full_name}")
         else:
             await bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
             log.error("Wrong permission !")
+    except mysql.errors.OperationalError:
+        db.db_connect().reconnect(attempts=5, delay=1)
 
 async def main():
     await asyncio.gather(bot.infinity_polling())
