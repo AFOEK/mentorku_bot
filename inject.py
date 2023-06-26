@@ -4,6 +4,18 @@ from dateutil.relativedelta import *
 from openpyxl import Workbook
 import logging as log
 
+def set_var(con):
+    log.info("Set connection timeout, wait_timeout, and interactive_timeout for 8 hours")
+    cursor = con.cursor()
+    query1 = "SET GLOBAL connect_timeout=64800;"
+    query2 = "SET SESSION wait_timeout=64800;"
+    query3 = "SET SESSION interactive_timeout=64800;"
+    cursor.execute(query1)
+    cursor.execute(query2)
+    cursor.execute(query3)
+    con.commit()
+    cursor.close()
+
 def check_room_id(id_chat, chatid):
     if(id_chat == chatid):
         log.warning(f"User id and user chat room id are same {id_chat} == {chatid}")
@@ -23,9 +35,11 @@ def check_userlist_empty(id_chat, con):
     data = cursor.fetchall()
     if not data:
         log.info(f"User list empty, return {404}, function name {check_userlist_empty.__name__}")
+        cursor.close()
         return 404
     else:
         log.info(f"User list populated, return {200}, function name {check_userlist_empty.__name__}")
+        cursor.close()
         return 200
 
 
@@ -35,6 +49,7 @@ def sign_in(id_chat, msg_id, chat_tm, con):
     val = (id_chat, msg_id, chat_tm, '1')
     cursor.execute(query, val)
     con.commit()
+    cursor.close()
     log.info(f"User wrote into database with row count: {cursor.rowcount}, function name {sign_in.__name__}")
 
 def sign_out(id_chat, msg_id, chat_tm, con):
@@ -48,9 +63,11 @@ def sign_out(id_chat, msg_id, chat_tm, con):
         cursor.execute(query, val)
         con.commit()
         log.info(f"User wrote into database with row count: {cursor.rowcount}, with return value {200}, function name {sign_out.__name__}")
+        cursor.close()
         return 200
     else:
         log.info(f"User didn't sign in before, with return value {404}, function name {sign_out.__name__}")
+        cursor.close()
         return 404
 
 
@@ -73,6 +90,7 @@ def init_data(user_id, username, admin_status, real_name, chat_id, con):
         cursor.execute(query, val)
         con.commit()
         log.info(f"User wrote into database with row count: {cursor.rowcount}, function name {init_data.__name__} with return 200")
+        cursor.close()
         return 200
     elif(data is not None):
         query = f"""UPDATE mentorku.userlist SET update_dt = CURRENT_TIMESTAMP, chat_room_id = "%s" WHERE userid = {user_id}"""
@@ -80,9 +98,11 @@ def init_data(user_id, username, admin_status, real_name, chat_id, con):
         cursor.execute(query, val)
         con.commit()
         log.info(f"User updated into database with row count: {cursor.rowcount}, function name {init_data.__name__} with return 204")
+        cursor.close()
         return 204
     else:
         log.info(f"No data write, function name {init_data.__name__} with return 409")
+        cursor.close()
         return 409
     
         
@@ -95,9 +115,11 @@ def get_admin_stat(userid, con):
     data = cursor.fetchone()[0]
     if(data == 1):
         log.info(f"Get admin status {True}, with function name {get_admin_stat.__name__}")
+        cursor.close()
         return True
     else:
         log.info(f"Get admin status {False}, with function name {get_admin_stat.__name__}")
+        cursor.close()
         return False
     
 def get_time(id_chat, con):
@@ -107,6 +129,7 @@ def get_time(id_chat, con):
     cursor.execute(query)
     data = cursor.fetchone()[0]
     log.info(f"Get in time, with function name {get_time.__name__}")
+    cursor.close()
     return data
 
 def get_data(con, args):
@@ -189,6 +212,7 @@ def get_data_excel(con, args):
     wb_name = "Mentorku attendance " + periode
     wb.save(wb_name+".xlsx")
     log.info(f"Saved a excel file with name {wb_name}.excel, with function name {get_data_excel.__name__}")
+    cursor.close()
     return str(periode)
 
 def sick(id_chat, msg_id, chat_tm, con):
@@ -199,6 +223,7 @@ def sick(id_chat, msg_id, chat_tm, con):
 
     cursor.execute(query, val)
     con.commit()
+    cursor.close()
     log.info(f"User inserted data into database with row count: {cursor.rowcount}, function name: {sick.__name__}")
 
 
@@ -211,9 +236,11 @@ def get_leave_status(userid, con):
 
     if not data:
         log.info(f"Get leave status with return {True}, with function name {get_leave_status.__name__}")
+        cursor.close()
         return True
     else:
         log.info(f"Get leave status with return {False}, with function name {get_leave_status.__name__}")
+        cursor.close()
         return False
 
 def leave(id_chat, msg_id, chat_tm, dur, con):
@@ -226,6 +253,7 @@ def leave(id_chat, msg_id, chat_tm, dur, con):
         cursor.execute(query, val)
 
     con.commit()
+    cursor.close()
     log.info(f"User inserted data into database with row count: {cursor.rowcount}, with function name {leave.__name__}")
     return True
 
@@ -237,6 +265,7 @@ def set_user_time(username, in_dt, con):
     
     if not data:
         log.info(f"No data write, function name {set_user_time.__name__} with return 409")
+        cursor.close()
         return 409
     else:
         query = f"""UPDATE mentorku.userlist SET in_dt = %s WHERE username = %s"""
@@ -244,4 +273,5 @@ def set_user_time(username, in_dt, con):
         cursor.execute(query, val)
         con.commit()
         log.info(f"User updated into database with row count: {cursor.rowcount}, function name {set_user_time.__name__} with return 200")
+        cursor.close()
         return 200

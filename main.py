@@ -22,10 +22,14 @@ token = ''.join(os.environ.get("BOT_TOKEN"))
 conn = db.db_connect()
 log.info('Database is connected')
 
+qry.set_var(con=conn)
+log.info('Database variable had been set')
+
 bot = AsyncTeleBot(token)
 log.info("bot succesfully connected")
 
 local_timezone = pytz.timezone('Asia/Jakarta')
+log.info(f"local timezone set at {local_timezone}")
 
 @bot.message_handler(commands=['in'])
 async def signin(message):
@@ -184,6 +188,7 @@ async def get_data_day(message):
         if(data != 409):
             result = table.from_db_cursor(data)
             await bot.reply_to(message, result)
+            data.close()
             log.info(f"Print result data for {args[0]}")
         else:
             await bot.reply_to(message, f"Did you give how many days you want to pull ?\nPossible options: now, 1d, 7d, 30d, 1w, 1m, 12m, 1y")
