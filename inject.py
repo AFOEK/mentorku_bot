@@ -4,15 +4,17 @@ from dateutil.relativedelta import *
 from openpyxl import Workbook
 import logging as log
 
-def set_var(con):
-    log.info("Set connection timeout, wait_timeout, and interactive_timeout for 8 hours")
+def set_var(con, tz):
+    log.info("Set connection timeout, wait_timeout, interactive_timeout for 8 hours and set session timezone to 'Asia/Jakarta'")
     cursor = con.cursor()
     query1 = "SET GLOBAL connect_timeout=64800;"
     query2 = "SET SESSION wait_timeout=64800;"
     query3 = "SET SESSION interactive_timeout=64800;"
+    query4 = f"SET @@SESSION.time_zone = '{tz}';"
     cursor.execute(query1)
     cursor.execute(query2)
     cursor.execute(query3)
+    cursor.execute(query4)
     con.commit()
     cursor.close()
 
@@ -21,7 +23,7 @@ def check_room_id(id_chat, chatid):
         log.warning(f"User id and user chat room id are same {id_chat} == {chatid}")
         return 403
     elif(re.findall("-",str(chatid))):
-        log.warning(f"User called in a group chat room id {id_chat}")
+        log.warning(f"User called in a group chat room id {str(id_chat)}")
         return 200
     else:
         log.warning(f"User called from an unknown room")

@@ -22,14 +22,14 @@ token = ''.join(os.environ.get("BOT_TOKEN"))
 conn = db.db_connect()
 log.info('Database is connected')
 
-qry.set_var(con=conn)
-log.info('Database variable had been set')
-
 bot = AsyncTeleBot(token)
 log.info("bot succesfully connected")
 
 local_timezone = pytz.timezone('Asia/Jakarta')
 log.info(f"local timezone set at {local_timezone}")
+
+qry.set_var(con=conn, tz = local_timezone)
+log.info('Database variable had been set')
 
 @bot.message_handler(commands=['in'])
 async def signin(message):
