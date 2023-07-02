@@ -44,6 +44,20 @@ def check_userlist_empty(id_chat, con):
         cursor.close()
         return 200
 
+def check_onleave(id_chat, con):
+    cursor = con.cursor()
+    query = f"SELECT id FROM mentorku.absensi WHERE (userid = %s AND DATE(time_stamp) = DATE(CURRENT_TIMESTAMP)) AND (status = 3 OR status = 4)"
+    val = (id_chat,)
+    cursor.execute(query, val)
+    data = cursor.fetchall()
+    if not data:
+        log.info(f"Leave notice was empty, return {404}, function name {check_onleave.__name__}")
+        cursor.close()
+        return 404
+    else:
+        log.info(f"Leave notice populated, return {200}, function name {check_onleave.__name__}")
+        cursor.close()
+        return 200
 
 def sign_in(id_chat, msg_id, chat_tm, con):
     cursor = con.cursor()

@@ -49,23 +49,27 @@ async def signin(message):
     else:
         log.info("User called in from a group chat")
         try:
-            ret = qry.check_userlist_empty(id_chat=user_id_chat,con=conn)
+            ret_usrlist = qry.check_userlist_empty(id_chat=user_id_chat,con=conn)
+            ret_onleave = qry.check_onleave(id_chat=user_id_chat, con = conn)
         except mysql.errors.OperationalError:
             db.db_connect().reconnect(attempts=5, delay=1)
-        if(ret == 200):
-            sign_in_time = qry.get_time(id_chat=user_id_chat, con=conn)
-            times = datetime.datetime.fromtimestamp(chat_time, local_timezone)
-            times_delta = datetime.timedelta(hours=times.hour, minutes=times.minute, seconds=times.second)
-            try:
-                qry.sign_in(id_chat=user_id_chat, msg_id=message_id, chat_tm=times, con=conn)
-                if(times_delta > sign_in_time):
-                    await bot.reply_to(message, f"{message.from_user.full_name} sign in at {times}. Sign in succesfully, but you're late for {times_delta - sign_in_time}")
-                else:
-                    await bot.reply_to(message, f"{message.from_user.full_name} sign in at {times}. Sign in succesfully, you're on time")
-                    log.info(f"User sign in, with name {message.from_user.full_name}")
-            except Exception as e:
-                await bot.reply_to(message, "Failed to sign in !")
-                log.error(repr(e))
+        if((ret_usrlist == 200)):
+            if((ret_onleave == 404)):
+                sign_in_time = qry.get_time(id_chat=user_id_chat, con=conn)
+                times = datetime.datetime.fromtimestamp(chat_time, local_timezone)
+                times_delta = datetime.timedelta(hours=times.hour, minutes=times.minute, seconds=times.second)
+                try:
+                    qry.sign_in(id_chat=user_id_chat, msg_id=message_id, chat_tm=times, con=conn)
+                    if(times_delta > sign_in_time):
+                        await bot.reply_to(message, f"{message.from_user.full_name} sign in at {times}. Sign in succesfully, but you're late for {times_delta - sign_in_time}")
+                    else:
+                        await bot.reply_to(message, f"{message.from_user.full_name} sign in at {times}. Sign in succesfully, you're on time")
+                        log.info(f"User sign in, with name {message.from_user.full_name}")
+                except Exception as e:
+                    await bot.reply_to(message, "Failed to sign in !")
+                    log.error(repr(e))
+            else:
+                await bot.reply_to(message, "You are on leave, you cannot sign in")
         else:
             await bot.reply_to(message, "User list table were empty please run `/init` first")
             log.info(f"Failed to sign in, with name {message.from_user.full_name}")
@@ -88,21 +92,25 @@ async def signin(message):
         log.warning("User called in from unknow chat room")
     else:
         log.info("User called in from a group chat")
-        ret = qry.check_userlist_empty(id_chat=user_id_chat,con=conn)
-        if(ret == 200):
-            try:
-                ret = qry.sign_out(id_chat=user_id_chat, msg_id=message_id, chat_tm=times, con=conn)
-                if(ret == 200):
-                    await bot.reply_to(message, f"{message.from_user.full_name} out at {times}. Sign out succesfully.")
-                    log.info(f"User sign out, with name {message.from_user.full_name}")
-                else:
-                    await bot.reply_to(message, f"You didn't sign in today please run `/in` before you sign out.")
-                    log.info(f"User failed to sign out due it didn't sign in !")
-            except mysql.errors.OperationalError:
-                db.db_connect().reconnect(attempts=5, delay=1)
-            except Exception as e:
-                await bot.reply_to(message, "Failed to sign out !")
-                log.error(repr(e))
+        ret_usrlist = qry.check_userlist_empty(id_chat=user_id_chat,con=conn)
+        ret_onleave = qry.check_onleave(id_chat=user_id_chat, con = conn)
+        if(ret_usrlist == 200):
+            if(ret_onleave == 404):
+                try:
+                    ret = qry.sign_out(id_chat=user_id_chat, msg_id=message_id, chat_tm=times, con=conn)
+                    if(ret == 200):
+                        await bot.reply_to(message, f"{message.from_user.full_name} out at {times}. Sign out succesfully.")
+                        log.info(f"User sign out, with name {message.from_user.full_name}")
+                    else:
+                        await bot.reply_to(message, f"You didn't sign in today please run `/in` before you sign out.")
+                        log.info(f"User failed to sign out due it didn't sign in !")
+                except mysql.errors.OperationalError:
+                    db.db_connect().reconnect(attempts=5, delay=1)
+                except Exception as e:
+                    await bot.reply_to(message, "Failed to sign out !")
+                    log.error(repr(e))
+            else:
+                await bot.reply_to(message, "You are on leave, you cannot sign out")
         else:
             await bot.reply_to(message, "User list table were empty please run `/init` first !")
             log.info(f"Failed to sign out, with name {message.from_user.full_name}")
@@ -379,9 +387,9 @@ async def get_log(message):
 
             if (len(last_line) > 4095):
                 for i in range(0, len(last_line), 4095):
-                    await bot.reply_to(message, text=last_line[i:i+4095])
-            else:
-                await bot.reply_to(message, text=last_line)
+                    await bot.reply_to(message, last_line[i:i+4095])
+                else:
+                    await bot.reply_to(message, text=last_line)
             
             log.info(f"Sent logs info for {message.from_user.full_name}")
         else:
