@@ -14,8 +14,7 @@ from dotenv import load_dotenv
 from telebot.async_telebot import AsyncTeleBot
 
 load_dotenv()
-log.basicConfig(filename='mentorku.log', filemode='a', format='%(levelname)s - %(asctime)s - %(message)s', datefmt='%a, %d/%m/%Y %H:%M:%S', level=log.INFO)
-log.propagate = False
+log.basicConfig(filename='mentorku.log', filemode='a', format='%(levelname)s - %(asctime)s - %(message)s', datefmt='%a, %d/%m/%Y %H:%M:%S', level=log.DEBUG)
 log.info("Log started")
 
 token = ''.join(os.environ.get("BOT_TOKEN"))
@@ -38,7 +37,6 @@ async def signin(message):
     chat_time = message.date
     id_chat = str(message.chat.id)
     ret = qry.check_room_id(chatid=id_chat,id_chat=user_id_chat)
-    
     
     if(ret == 403):
         await bot.reply_to(message, "You called this bot from your personal chat room, please call it from appropiate group")
@@ -134,10 +132,13 @@ async def init(message):
         username = member.user.username
         names = message.from_user.full_name
         status = member.status
-        try:
-            ret = qry.init_data(user_id = user_id, username = username, admin_status=status, real_name= names, chat_id = chat_id, con=conn)
-        except mysql.errors.OperationalError:
-            db.db_connect().reconnect(attempts=5, delay=1)
+        if(username != "" or username is not None):
+            try:
+                ret = qry.init_data(user_id = user_id, username = username, admin_status=status, real_name= names, chat_id = chat_id, con=conn)
+            except mysql.errors.OperationalError:
+                db.db_connect().reconnect(attempts=5, delay=1)
+        else:
+            await bot.reply_to(message, f"User didn't set thier telegram username ! Please set the username before run this command !")
 
         if (ret == 200):
             await bot.reply_to(message, f"Added new member to database, with name {names} at {datetime.datetime.fromtimestamp(message.date, local_timezone)}")
@@ -351,16 +352,21 @@ async def set_in_time(message):
                         log.error(f"Wrong format or Null, input get {message.text}")
                     times = ''.join(args[1])
                     username = ''.join(args[0])
-                    if(re.search("[0-9][0-9]:[0-9][0-9]:[0-9][0-9]", times)):
-                        ret = qry.set_user_time(username=username, in_dt=times, con=conn)
-                        if(ret == 200):
-                            await bot.reply_to(message, f"""Succesfully change in time for user {username} at {times}""")
-                            log.info(f"Successfuly changed {username} at time {times}")
+                    if(username != "" or username is not None):
+                        if(re.search("[0-9][0-9]:[0-9][0-9]:[0-9][0-9]", times)):
+                            ret = qry.set_user_time(username=username, in_dt=times, con=conn)
+                            if(ret == 200):
+                                await bot.reply_to(message, f"""Succesfully change in time for user {username} at {times}""")
+                                log.info(f"Successfuly changed {username} at time {times}")
+                        else:
+                            await bot.reply_to(message, f"Invalid format ! Format: hh:mm:ss\nE.g: 08:30:00")
+                            log.error("Invalid format")
                     else:
-                        await bot.reply_to(message, f"Invalid format ! Format: hh:mm:ss\nE.g: 08:30:00")
-                        log.error("Invalid format")
+                        await bot.reply_to(message, f"User didn't set thiers username, please set thier username !")
+                        log.warning("User didn't have any valid username")
                 else:
                     await bot.reply_to(message, f"User list table were empty please run `/init` first !")
+                    log.warning("User not found in userlist table !")
             else:
                 await bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
                 log.error("Wrong permission !")

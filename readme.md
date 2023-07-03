@@ -1,17 +1,18 @@
 # Attendance Bot
 
-This is a telegram attendence bot, it's run using **python 3.11** and powered with [pyTelegramBotAPI](https://pypi.org/project/pyTelegramBotAPI/), [prettytable](https://github.com/jazzband/prettytable), [mysql](https://pypi.org/project/mysql-connector-python/), [pytz](https://pythonhosted.org/pytz/),and [openpyxl](https://openpyxl.readthedocs.io/en/stable/#).   
+This is a telegram attendence bot, it's run using **python 3.11** and powered with [pyTelegramBotAPI](https://pypi.org/project/pyTelegramBotAPI/), [prettytable](https://github.com/jazzband/prettytable), [mysql](https://pypi.org/project/mysql-connector-python/), [pytz](https://pythonhosted.org/pytz/), and [openpyxl](https://openpyxl.readthedocs.io/en/stable/#).   
 
 > **Warning**  
 > This bot will read all information available in users telegram, this bot only store `user_id`, `user_name`, `full_name`, `chat_id`, and `group_member_permission`.  
-> With using this bot, user already consent to give all mentioned data.
+> With using this bot, user already consent to give all mentioned data.   
 > This bot didn't read and write any chat other than assigned group room or private room.
 
 ## Usage
 
 > **Note**  
-> Before using this bot, please invite all user into a group and give each member proper role.  
-> Each member need to type `/init` or `/start` in order to use this bot properly.
+> Before using this bot, please invite all user into a group and give each member proper role.   
+> Make sure each user have his/her telegram username set !  
+> Each member need to type `/init` or `/start` in order to use this bot properly.   
 > Optional: You needed to set each member sign in time default 07:00:00 (7 a.m), you can change it using `/set_in_time {telegram_username} {hh:mm:ss}`. E.g: `/set_in_time Xx_mentorkuadmin_xX 09:30:45`
 
 ### List Command
