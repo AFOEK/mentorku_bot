@@ -322,10 +322,10 @@ async def leave_attendence(message):
 
 @bot.message_handler(commands=['set_in_time'])
 async def set_in_time(message):
-    fullname = message.from_user.full_name
     user_id = message.from_user.id
     id_chat = str(message.chat.id)
 
+    ret_usrlist = qry.check_userlist_empty(id_chat=user_id,con=conn)
     ret = qry.check_room_id(chatid=id_chat,id_chat=user_id)
     
     if(ret == 403):
@@ -339,25 +339,28 @@ async def set_in_time(message):
         try:
             admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
             if(admin_stat):
-                if(message.text != "" or message.text is not None):
-                    try:
-                        args = message.text.split()[1:3]
-                    except Exception as e:
-                        await bot.reply_to(message, "Did you give any arguments ? set_in_time <username> <time hh:mm::ss>")
-                        log.error(f"Empty args. {repr(e)}")
+                if(ret_usrlist == 200):
+                    if(message.text != "" or message.text is not None):
+                        try:
+                            args = message.text.split()[1:3]
+                        except Exception as e:
+                            await bot.reply_to(message, "Did you give any arguments ? set_in_time <username> <time hh:mm::ss>")
+                            log.error(f"Empty args. {repr(e)}")
+                    else:
+                        await bot.reply_to(message, "Did you give what time the user should sign in ? Format: hh:mm:ss")
+                        log.error(f"Wrong format or Null, input get {message.text}")
+                    times = ''.join(args[1])
+                    username = ''.join(args[0])
+                    if(re.search("[0-9][0-9]:[0-9][0-9]:[0-9][0-9]", times)):
+                        ret = qry.set_user_time(username=username, in_dt=times, con=conn)
+                        if(ret == 200):
+                            await bot.reply_to(message, f"""Succesfully change in time for user {username} at {times}""")
+                            log.info(f"Successfuly changed {username} at time {times}")
+                    else:
+                        await bot.reply_to(message, f"Invalid format ! Format: hh:mm:ss\nE.g: 08:30:00")
+                        log.error("Invalid format")
                 else:
-                    await bot.reply_to(message, "Did you give what time the user should sign in ? Format: hh:mm:ss")
-                    log.error(f"Wrong format or Null, input get {message.text}")
-                times = ''.join(args[1])
-                username = ''.join(args[0])
-                if(re.search("[0-9][0-9]:[0-9][0-9]:[0-9][0-9]", times)):
-                    ret = qry.set_user_time(username=username, in_dt=times, con=conn)
-                    if(ret == 200):
-                        await bot.reply_to(message, f"""Succesfully change in time for user {fullname}""")
-                        log.info(f"Successfuly changed {message.from_user.full_name} at time {times}")
-                else:
-                    await bot.reply_to(message, f"Invalid format ! Format: hh:mm:ss\nE.g: 08:30:00")
-                    log.error("Invalid format")
+                    await bot.reply_to(message, f"User list table were empty please run `/init` first !")
             else:
                 await bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
                 log.error("Wrong permission !")
@@ -377,7 +380,7 @@ async def get_log(message):
             with open("mentorku.log", 'r') as logs:
                 try:
                     logs.seek(-2, os.SEEK_END)    
-                    while num_newlines < 10:
+                    while num_newlines < 5:
                         logs.seek(-2, os.SEEK_CUR)
                         if logs.read(1) == b'\n':
                             num_newlines += 1
@@ -385,11 +388,13 @@ async def get_log(message):
                     logs.seek(0)
                 last_line = logs.readlines()
 
+            print(last_line)
+
             if (len(last_line) > 4095):
                 for i in range(0, len(last_line), 4095):
                     await bot.reply_to(message, last_line[i:i+4095])
-                else:
-                    await bot.reply_to(message, text=last_line)
+            else:
+                await bot.reply_to(message, text=last_line)
             
             log.info(f"Sent logs info for {message.from_user.full_name}")
         else:
