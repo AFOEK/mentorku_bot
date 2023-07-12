@@ -5,7 +5,7 @@ from openpyxl import Workbook
 import logging as log
 
 def set_var(con, tz):
-    log.info("Set connection timeout, wait_timeout, interactive_timeout for 8 hours and set session timezone to 'Asia/Jakarta'")
+    log.info(f"Set connection timeout, wait_timeout, interactive_timeout for 8 hours and set session timezone to '{tz}'")
     cursor = con.cursor()
     query1 = "SET GLOBAL connect_timeout=64800;"
     query2 = "SET SESSION wait_timeout=64800;"
@@ -17,17 +17,6 @@ def set_var(con, tz):
     cursor.execute(query4)
     con.commit()
     cursor.close()
-
-def check_room_id(id_chat, chatid):
-    if(id_chat == chatid):
-        log.warning(f"User id and user chat room id are same {id_chat} == {chatid}")
-        return 403
-    elif(re.findall("-",str(chatid))):
-        log.warning(f"User called in a group chat room id {str(id_chat)}")
-        return 200
-    else:
-        log.warning(f"User called from an unknown room")
-        return 401
 
 def check_userlist_empty(id_chat, con):
     cursor = con.cursor()
@@ -120,7 +109,7 @@ def init_data(user_id, username, admin_status, real_name, chat_id, con):
         log.info(f"No data write, function name {init_data.__name__} with return 409")
         cursor.close()
         return 409
-    
+
         
 def get_admin_stat(userid, con):
     cursor = con.cursor()
@@ -291,3 +280,12 @@ def set_user_time(username, in_dt, con):
         log.info(f"User updated into database with row count: {cursor.rowcount}, function name {set_user_time.__name__} with return 200")
         cursor.close()
         return 200
+    
+def set_passwd(password, user_id, con):
+    cursor = con.cursor()
+    query = f"""UPDATE mentorku.userlist SET passwd = %s WHERE userid = %s"""
+    val = (password, user_id)
+    cursor.execute(query, val)
+    con.commit()
+    cursor.close()
+    return 200
