@@ -288,4 +288,5 @@ def set_passwd(password, user_id, con):
     cursor.execute(query, val)
     con.commit()
     cursor.close()
+    log.info(f"User updated into database with row count: {cursor.rowcount}, function name {set_passwd.__name__} with return 200")
     return 200

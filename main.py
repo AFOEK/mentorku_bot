@@ -4,6 +4,7 @@ import telebot
 import datetime
 import pytz
 import asyncio
+import hashlib
 import mysql.connector as mysql
 import logging as log
 import connector as db
@@ -20,7 +21,6 @@ from telebot.asyncio_handler_backends import State, StatesGroup
 
 class passwdState(StatesGroup):
     passwd = State()
-    user_id = State()
 
 load_dotenv()
 log.basicConfig(filename='mentorku.log', filemode='a', format='%(levelname)s - %(asctime)s - %(message)s', datefmt='%a, %d/%m/%Y %H:%M:%S', level=log.DEBUG)
@@ -369,13 +369,15 @@ async def set_passwd(message):
 
     if(room_type == "supergroup" and room_type == "channel"):
         await bot.reply_to(message, "You called this bot from unknown chat room, please call it from an appropiate group ")
+        log.error("User called from inside a channel or supergroup")
     elif(room_type == "private" or room_type == "group"):
+        log.info("User called from inside a group")
         await bot.set_state(message.from_user.id, passwdState.passwd, message.chat.id)
-        await bot.set_state(message.from_user.id, passwdState.user_id, message.chat.id)
         await bot.send_message(message.chat.id, f"Please enter your password (It's must containts 8 characters)", reply_markup=types.ForceReply(selective=False))
 
 @bot.message_handler(commands=['cancel'], state="*")
 async def cancel_state(message):
+    log.info("User cancel the operation")
     await bot.send_message(message.chat.id, f"Command canceled !")
     await bot.delete_state(message.from_user.id, message.chat.id)
 
@@ -383,9 +385,12 @@ async def cancel_state(message):
 async def store_data(message):
     async with bot.retrieve_data(message.from_user.id, message.chat.id) as passwd:
         passwd['passwd'] = message.text
-        passwd['user_id'] = message.from_user.id
     
-    ret = qry.set_passwd(password=passwd['passwd'], user_id=passwd['user_id'], con=conn)
+    log.info("Get user password string from state")
+    passwd_salted = passwd['passwd'] + str(message.from_user.id)
+    hashed_passwd = hashlib.md5(passwd_salted.encode())
+    log.info("Salted user's password")
+    ret = qry.set_passwd(password=hashed_passwd, user_id=message.from_user.id, con=conn)
 
     if(ret == 200):
         await bot.send_message(message.chat.id, f"Password successfully been set")
@@ -401,7 +406,7 @@ async def get_log(message):
     admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
     if(admin_stat):
         num_newlines = 0
-        with open("mentorku.log", 'r') as logs:
+        with open("mentorku.log", 'rb') as logs:
             try:
                 logs.seek(-2, os.SEEK_END)    
                 while num_newlines < 5:
@@ -410,12 +415,9 @@ async def get_log(message):
                         num_newlines += 1
             except OSError:
                 logs.seek(0)
-            last_line = logs.readlines()
-
+            last_line = logs.readline().decode()
+        print(last_line)
         split_txt = util.smart_split(last_line, chars_per_string=1500)
-        
-        print(split_txt)
-
         for txt in split_txt:
             await bot.send_message(chat_id, txt)
 
