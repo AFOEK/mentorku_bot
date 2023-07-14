@@ -237,22 +237,20 @@ def get_leave_status(userid, con):
 
     query = f"SELECT * FROM mentorku.absensi WHERE MONTH(time_stamp) = MONTH(CURDATE()) AND status = 4 AND userid = {userid}"
     cursor.execute(query)
-    data = cursor.fetchall()
-
-    if not data:
-        log.info(f"Get leave status with return {True}, with function name {get_leave_status.__name__}")
-        cursor.close()
-        return True
-    else:
+    cursor.fetchall()
+    if(cursor.rowcount >= 3):
         log.info(f"Get leave status with return {False}, with function name {get_leave_status.__name__}")
         cursor.close()
         return False
+    else:
+        log.info(f"Get leave status with return {True}, with function name {get_leave_status.__name__}")
+        cursor.close()
+        return True
 
-def leave(id_chat, msg_id, chat_tm, dur, con):
+def leave(id_chat, msg_id, dur, start_date, con):
     cursor = con.cursor()
-    
     for i in range (1, int(dur) + 1):
-        times = chat_tm + relativedelta(days=+i)
+        times = start_date + relativedelta(days=+i)
         query = f"INSERT INTO mentorku.absensi (userid, chat_id, time_stamp, status) Values (%s, %s, %s, %s)"
         val = (id_chat, msg_id, times, '4')
         cursor.execute(query, val)

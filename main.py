@@ -15,6 +15,7 @@ from collections import deque
 from dotenv import load_dotenv 
 from telebot import asyncio_filters
 from dateutil.relativedelta import *
+from dateutil.relativedelta import *
 from telebot.async_telebot import AsyncTeleBot
 from telebot.async_telebot import types
 from telebot.async_telebot import util
@@ -166,10 +167,12 @@ E.g: `/get_data 1d`, `/get_data 7d`, `/get_data 1m`, or `/get_data 1y`.
 /get_data_excel {args}: Will sent attendence report in Excel format based how many days, months, or year the user supplied. Possible options are 1d, 7d, 30d, 1w, 1m, 12m, and 1y.
 E.g: `/get_data_excel 1d`, `/get_data_excel 7d`, `/get_data_excel 1m`, or `/get_data_excel 1y`.
 /sick: Sick leave.
-/leave {args}: On leave status, it is require how many days the user wanted to take its leave. (Max: 3 days and didn't take any leave within one month span).
-E.g: `/leave 2d`
+/leave {args0} {args1}: On leave status, it is require how many days and when the user wanted to take its leave. (Max: 3 days and didn't take any leave within one month span).
+E.g: `/leave 2d 20/07/2023`, `/leave 3d 18/07/2023`
 /set_in_time {args0} {args1}: Will set user's sign in time, this will determine if the user late or on time. it's required telegram username and sign in time with format hh:mm:ss.
-E.g: `/set_in_time telegram_username 08:00:00`""")
+E.g: `/set_in_time telegram_username 08:00:00`
+/get_log: Will print out last 5 lines of logs.
+/set_password: Will start series of command which user need to give his/her password""")
     log.info("Successfuly displaying help")
 
 @bot.message_handler(commands=['get_data'])
@@ -277,9 +280,7 @@ async def sick_attendence(message):
 async def leave_attendence(message):
     user_id_chat = message.from_user.id
     message_id = message.message_id
-    chat_time = message.date
     room_type = message.chat.type
-    times = datetime.datetime.fromtimestamp(chat_time, local_timezone)
     
     if(room_type == "private"):
         await bot.reply_to(message, "You called this bot from your personal chat room, please call it from appropiate group")
@@ -291,7 +292,7 @@ async def leave_attendence(message):
         log.info("User called in from a group chat")
         if(message.text != "" or message.text is not None):
             try:
-                args = message.text.split()[1:]
+                args = message.text.split()[1:3]
             except Exception as e:
                 await bot.reply_to(message, "Did you give any arguments ? leave <1-3>d")
                 log.error(f"Empty args. {repr(e)}")
@@ -300,21 +301,29 @@ async def leave_attendence(message):
             log.error("Invalid args")
 
         dur = ''.join(re.findall("[0-9]", args[0]))
+        dt = ''.join(re.findall(r"\b\d{2}/\d{2}/\d{4}\b", args[1]))
+        days = datetime.datetime.strptime(dt,"%d/%m/%Y")
 
         if(qry.get_leave_status(userid=user_id_chat, con=conn)):
             if(int(dur) >= 4):
                 await bot.reply_to(message, "You can take 3 days leave only")
                 log.error(f"Leave day exceded 3 days !, requested by {message.from_user.full_name}")
             else:
-                ret = qry.leave(id_chat=user_id_chat, msg_id=message_id, chat_tm=times, dur=dur, con=conn)
-
-            if(ret):
-                await bot.reply_to(message, "You requested leave for " + dur + " days")
-            else:
-                await bot.reply_to(message, "Did you give how many days you want to take on leave ?")
-                log.error("Invalid args")
+                diff = abs((datetime.datetime.now().date() - days.date()).days)
+                if(diff >= 3):
+                    ret = qry.leave(id_chat=user_id_chat, msg_id=message_id, dur=dur, start_date=days, con=conn)
+                    log.info(f"User on leave, with name {message.from_user.full_name}")
+                    if(ret):
+                        new_date = days + relativedelta(days=+int(dur))
+                        await bot.reply_to(message, f"You requested leave for {dur} days, from {days.date()} until {new_date.date()}")
+                    else:
+                        await bot.reply_to(message, "Did you give how many days you want to take on leave ?")
+                        log.error("Invalid args")
+                else:
+                    await bot.reply_to(message, f"You need to request on leave H-3 before, but you requested at {diff}")
+                    log.warning(f"User requested leave at {diff} ! with username {message.from_user.full_name}.")
         else:
-            await bot.reply_to(message, "You can take 3 days leave in ONE month, if any urgent matters please contact your supervisior !")
+            await bot.reply_to(message, "You can take 3 days leave in ONE month, if any urgent matters please contact your supervisor !")
             log.error(f"Leave day exceded 3 days in 1 month !, requested by {message.from_user.full_name}")
 
 @bot.message_handler(commands=['set_in_time'])
@@ -368,14 +377,20 @@ async def set_in_time(message):
 @bot.message_handler(commands=['set_password'])
 async def set_passwd(message):
     room_type = message.chat.type
-
-    if(room_type == "supergroup" and room_type == "channel"):
-        await bot.reply_to(message, "You called this bot from unknown chat room, please call it from an appropiate group ")
-        log.error("User called from inside a channel or supergroup")
-    elif(room_type == "private" or room_type == "group"):
-        log.info("User called from inside a group")
-        await bot.set_state(message.from_user.id, passwdState.passwd, message.chat.id)
-        await bot.send_message(message.chat.id, f"Please enter your password (It's must containts 8 characters)", reply_markup=types.ForceReply(selective=False))
+    user_id = message.from_user.id
+    admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
+    if(admin_stat):
+        if(room_type == "supergroup" and room_type == "channel"):
+            await bot.reply_to(message, "You called this bot from unknown chat room, please call it from an appropiate group ")
+            log.error("User called from inside a channel or supergroup")
+        elif(room_type == "private" or room_type == "group"):
+            log.info("User called from inside a group")
+            await bot.set_state(message.from_user.id, passwdState.passwd, message.chat.id)
+            await bot.send_message(message.chat.id, f"Please enter your password (It's must containts 8 characters)", reply_markup=types.ForceReply(selective=False))
+    else:
+        await bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
+        await bot.delete_state(message.from_user.id, message.chat.id)
+        log.error("Wrong permission !")
 
 @bot.message_handler(commands=['cancel'], state="*")
 async def cancel_state(message):
@@ -396,9 +411,10 @@ async def store_data(message):
 
     if(ret == 200):
         await bot.send_message(message.chat.id, f"Password successfully been set")
+        await bot.delete_state(message.from_user.id, message.chat.id)
     else:
         await bot.send_message(message.chat.id, f"Password couldn't be set")
-
+        await bot.delete_state(message.from_user.id, message.chat.id)
 
 @bot.message_handler(commands=['get_log'])
 async def get_log(message):
