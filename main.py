@@ -10,9 +10,11 @@ import logging as log
 import connector as db
 import inject as qry
 import prettytable as table
+
+from collections import deque
+from dotenv import load_dotenv 
 from telebot import asyncio_filters
 from dateutil.relativedelta import *
-from dotenv import load_dotenv 
 from telebot.async_telebot import AsyncTeleBot
 from telebot.async_telebot import types
 from telebot.async_telebot import util
@@ -405,21 +407,18 @@ async def get_log(message):
 
     admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
     if(admin_stat):
-        num_newlines = 0
-        with open("mentorku.log", 'rb') as logs:
-            try:
-                logs.seek(-2, os.SEEK_END)    
-                while num_newlines < 5:
-                    logs.seek(-2, os.SEEK_CUR)
-                    if logs.read(1) == b'\n':
-                        num_newlines += 1
-            except OSError:
-                logs.seek(0)
-            last_line = logs.readline().decode()
-        print(last_line)
-        split_txt = util.smart_split(last_line, chars_per_string=1500)
-        for txt in split_txt:
-            await bot.send_message(chat_id, txt)
+        log.info("Opening log file")
+        with open("mentorku.log", 'r') as f:
+            last_lines = deque(f, 6)
+
+        lst_str = ''.join(last_lines)
+        log.info("Preparing log file strings")
+        chunks = []
+        for i in range(0, len(lst_str), 4000):
+            chunks.append(lst_str[i:i+4000])
+
+        for chunk in chunks:
+            await bot.send_message(chat_id, chunk)
 
         log.info(f"Sent logs info for {message.from_user.full_name}")
     else:
