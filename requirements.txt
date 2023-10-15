@@ -7,4 +7,3 @@ python-dateutil
 openpyxl
 aioschedule
 aiohttp
-hashlib

@@ -1,11 +1,12 @@
 import os
+import random
 import re
+import string
 import telebot
 import datetime
 import pytz
 import asyncio
 import hashlib
-import mysql.connector as mysql
 import logging as log
 import connector as db
 import inject as qry
@@ -188,10 +189,10 @@ async def get_data_day(message):
                 args = message.text.split()[1:]
             except Exception as e:
                 await bot.reply_to(message, "Did you give any arguments ? get_data_excel <duration>\nPossible options: now, 1d, 7d, 30d, 1w, 1m, 12m, 1y")
-                log.error(f"Empty args. {repr(e)}")
+                log.error(f"Invalid args. {repr(e)}")
         else:
-            await bot.reply_to(message, f"Did you give how many days you want to pull ?\nPossible options: now, 1d, 7d, 30d, 1w, 1m, 12m, 1y")
-            log.error("Invalid args")
+            args = ["now"]
+            log.info(f"Empty argument fallback to `now` selection")
 
         if(admin_stat):
             try:
@@ -228,10 +229,10 @@ async def get_data_excel(message):
                 args = message.text.split()[1:]
             except Exception as e:
                 await bot.reply_to(message, "Did you give any arguments ? get_data_excel <duration>\nPossible options: now, 1d, 7d, 30d, 1w, 1m, 12m, 1y")
-                log.error(f"Empty args. {repr(e)}")
+                log.error(f"Invalid args. {repr(e)}")
         else:
-            await bot.reply_to(message, f"Did you give how many days you want to pull ?\nPossible options: now, 1d, 7d, 30d, 1w, 1m, 12m, 1y")
-            log.error("Invalid args")
+            args = ["now"]
+            log.info(f"Empty argument fallback to `now` selection")
 
         if(admin_stat):
             try:
@@ -279,6 +280,7 @@ async def sick_attendence(message):
 @bot.message_handler(commands=['leave'])
 async def leave_attendence(message):
     user_id_chat = message.from_user.id
+    username = message.from_user.full_name
     message_id = message.message_id
     room_type = message.chat.type
     
@@ -295,7 +297,7 @@ async def leave_attendence(message):
                 args = message.text.split()[1:3]
             except Exception as e:
                 await bot.reply_to(message, "Did you give any arguments ? leave <1-3>d")
-                log.error(f"Empty args. {repr(e)}")
+                log.error(f"Invalid args. {repr(e)}")
         else:
             await bot.reply_to(message, "Did you give how many days you want to take on leave ?")
             log.error("Invalid args")
@@ -311,11 +313,13 @@ async def leave_attendence(message):
             else:
                 diff = abs((datetime.datetime.now().date() - days.date()).days)
                 if(diff >= 3):
-                    ret = qry.leave(id_chat=user_id_chat, msg_id=message_id, dur=dur, start_date=days, con=conn)
+                    temp_id = str(message.from_user.username) + str(message.from_user.id) + ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(5))
+                    id_str = hashlib.md5(temp_id.encode())
+                    ret = qry.leave(id=id_str[:9], user_id=user_id_chat, username=username, dur=dur, start_date=dt, con=conn)
                     log.info(f"User on leave, with name {message.from_user.full_name}")
                     if(ret):
                         new_date = days + relativedelta(days=+int(dur))
-                        await bot.reply_to(message, f"You requested leave for {dur} days, from {days.date()} until {new_date.date()}")
+                        await bot.reply_to(message, f"You requested leave for {dur} days, from {days.date()} until {new_date.date()}, already been recorded please wait for approval by your supervisor")
                     else:
                         await bot.reply_to(message, "Did you give how many days you want to take on leave ?")
                         log.error("Invalid args")
@@ -349,7 +353,7 @@ async def set_in_time(message):
                         args = message.text.split()[1:3]
                     except Exception as e:
                         await bot.reply_to(message, "Did you give any arguments ? set_in_time <username> <time hh:mm::ss>")
-                        log.error(f"Empty args. {repr(e)}")
+                        log.error(f"Invalid args. {repr(e)}")
                 else:
                     await bot.reply_to(message, "Did you give what time the user should sign in ? Format: hh:mm:ss")
                     log.error(f"Wrong format or Null, input get {message.text}")
@@ -440,6 +444,30 @@ async def get_log(message):
     else:
         await bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
         log.error("Wrong permission !")
+
+@bot.message_handler(commands=['approval'])
+async def set_approval(message):
+    user_id = message.from_user.id
+    chat_id = message.chat.id
+    room_type = message.chat.type
+
+    admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
+    if(admin_stat):
+        if(room_type == "supergroup" and room_type == "channel"):
+            await bot.reply_to(message, "You called this bot from unknown chat room, please call it from an appropiate group ")
+            log.error("User called from inside a channel or supergroup")
+        elif(room_type == "private" or room_type == "group"):
+            log.info("User called from inside a group")
+            if(message.text != "" or message.text is not None):
+                try:
+                    args = message.text.split()[1:3]
+                except Exception as e:
+                    await bot.reply_to(message, "Did you give username who you want approv thier leave ?\nUsage: approval <username> [ok/no/denied/granted]")
+                    log.error(f"Invalid args. {repr(e)}")
+            else:
+                ret = qry.get_approval()
+                
+
 
 bot.add_custom_filter(asyncio_filters.StateFilter(bot))
 

@@ -1,4 +1,3 @@
-import re
 import datetime
 from dateutil.relativedelta import *
 from openpyxl import Workbook
@@ -247,14 +246,11 @@ def get_leave_status(userid, con):
         cursor.close()
         return True
 
-def leave(id_chat, msg_id, dur, start_date, con):
+def leave(id, user_id, dur, username, start_date, con):
     cursor = con.cursor()
-    for i in range (1, int(dur) + 1):
-        times = start_date + relativedelta(days=+i)
-        query = f"INSERT INTO mentorku.absensi (userid, chat_id, time_stamp, status) Values (%s, %s, %s, %s)"
-        val = (id_chat, msg_id, times, '4')
-        cursor.execute(query, val)
-
+    query = f"INSERT INTO mentorku.approval (id, userid, username, dur, start_date, timestamp, status) Values (%s, %s, %s, %s, %s, now(), 2)"
+    val = (id ,user_id, dur, username, start_date)
+    cursor.execute(query, val)
     con.commit()
     cursor.close()
     log.info(f"User inserted data into database with row count: {cursor.rowcount}, with function name {leave.__name__}")
@@ -288,3 +284,16 @@ def set_passwd(password, user_id, con):
     cursor.close()
     log.info(f"User updated into database with row count: {cursor.rowcount}, function name {set_passwd.__name__} with return 200")
     return 200
+
+def get_approval(con, username=None):
+    cursor = con.cursor()
+    if(username == "" or username is None):
+        query = f"""SELECT mentorku.approval WHERE status = 2"""
+        cursor.execute(query)
+    elif (username != "" or username is not None):
+        query =  f"""SELECT mentorku.approval WHERE status = 2 and username = %s"""
+        val = (username,)
+        cursor.execute(query, val)
+
+    data = cursor.fetchall()
+    
