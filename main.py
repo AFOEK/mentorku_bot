@@ -317,7 +317,7 @@ async def leave_attendence(message):
                 if(diff >= 3):
                     temp_id = str(message.from_user.username) + str(message.from_user.id) + ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(5))
                     id_str = hashlib.md5(temp_id.encode()).hexdigest()
-                    ret = qry.leave(id=id_str[:15], user_id=user_id_chat, username=username, dur=dur, start_date=dt, con=conn)
+                    ret = qry.leave(id=id_str[:15], user_id=user_id_chat, username=username, dur=dur, start_date=days, con=conn)
                     log.info(f"User on leave, with name {message.from_user.full_name}")
                     if(ret):
                         new_date = days + relativedelta(days=+int(dur))
