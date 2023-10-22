@@ -10,10 +10,12 @@ def set_var(con, tz):
     query2 = "SET SESSION wait_timeout=64800;"
     query3 = "SET SESSION interactive_timeout=64800;"
     query4 = f"SET @@SESSION.time_zone = '{tz}';"
+    query5 = "SET SESSION sql_mode='';"
     cursor.execute(query1)
     cursor.execute(query2)
     cursor.execute(query3)
     cursor.execute(query4)
+    cursor.execute(query5)
     con.commit()
     cursor.close()
 
@@ -248,8 +250,8 @@ def get_leave_status(userid, con):
 
 def leave(id, user_id, dur, username, start_date, con):
     cursor = con.cursor()
-    query = f"INSERT INTO mentorku.approval (id, userid, username, dur, start_date, timestamp, status) Values (%s, %s, %s, %s, %s, now(), 2)"
-    val = (id ,user_id, dur, username, start_date)
+    query = f"INSERT INTO mentorku.approval (id, userid, username, duration, start_dt, timestamp, status) Values (%s, %s, %s, %s, %s, now(), 2)"
+    val = (id ,user_id, int(dur), username, start_date)
     cursor.execute(query, val)
     con.commit()
     cursor.close()
@@ -296,4 +298,13 @@ def get_approval(con, username=None):
         cursor.execute(query, val)
 
     data = cursor.fetchall()
-    
+    log.info(f"Return data from database from function name {get_approval.__name__}")
+    return data
+
+def check_args(args):
+    if(("" in args[1:]) or (None in args[1:])):
+        log.info(f"Checked arguments returned {False} from function name {check_args.__name__}")
+        return False
+    else:
+        log.info(f"Checked arguments returned {True} from function name {check_args.__name__}")
+        return True

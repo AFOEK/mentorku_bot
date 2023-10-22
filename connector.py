@@ -11,12 +11,14 @@ def db_connect():
         DB_USER = os.environ.get("DB_USER")
         DB_PASSWORD = os.environ.get("DB_PASSWORD")
         DB_NAME = os.environ.get("DB_NAME")
+        DB_PORT = os.environ.get("DB_PORT")
 
         db = mysql.connector.connect(
             host = ''.join(DB_ADD),
             user = ''.join(DB_USER),
             password = ''.join(DB_PASSWORD),
             database = ''.join(DB_NAME),
+            port = ''.join(DB_PORT),
             pool_name = "Mentorku",
             pool_size = 5
         )
