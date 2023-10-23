@@ -281,8 +281,7 @@ async def sick_attendence(message):
 @bot.message_handler(commands=['leave'])
 async def leave_attendence(message):
     user_id_chat = message.from_user.id
-    username = message.from_user.full_name
-    message_id = message.message_id
+    username = message.from_user.username
     room_type = message.chat.type
     
     if(room_type == "private"):
@@ -316,7 +315,7 @@ async def leave_attendence(message):
                 diff = abs((datetime.datetime.now().date() - days.date()).days)
                 if(diff >= 3):
                     temp_id = str(message.from_user.username) + str(message.from_user.id) + ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(5))
-                    id_str = hashlib.md5(temp_id.encode()).hexdigest()
+                    id_str = hashlib.sha512(temp_id.encode()).hexdigest()
                     ret = qry.leave(id=id_str[:15], user_id=user_id_chat, username=username, dur=dur, start_date=days, con=conn)
                     log.info(f"User on leave, with name {message.from_user.full_name}")
                     if(ret):
@@ -469,7 +468,7 @@ async def set_approval(message):
                 log.error(f"Invalid args. {repr(e)}")
             
             if(qry.check_args(args)):    
-                ret = qry.get_approval(con=conn, username=args)
+                ret = qry.get_approval(con=conn, username=args[0])
                 if ret:
                     print(ret)
                 

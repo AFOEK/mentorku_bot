@@ -251,7 +251,7 @@ def get_leave_status(userid, con):
 def leave(id, user_id, dur, username, start_date, con):
     cursor = con.cursor()
     query = f"INSERT INTO mentorku.approval (id, userid, username, duration, start_dt, timestamp, status) Values (%s, %s, %s, %s, %s, now(), 2)"
-    val = (id ,user_id, int(dur), username, start_date)
+    val = (id ,user_id, username ,int(dur), start_date)
     cursor.execute(query, val)
     con.commit()
     cursor.close()
@@ -290,10 +290,10 @@ def set_passwd(password, user_id, con):
 def get_approval(con, username=None):
     cursor = con.cursor()
     if(username == "" or username is None):
-        query = f"""SELECT mentorku.approval WHERE status = 2"""
+        query = f"""SELECT id, username, duration, start_dt FROM mentorku.approval WHERE status = 2"""
         cursor.execute(query)
     elif (username != "" or username is not None):
-        query =  f"""SELECT mentorku.approval WHERE status = 2 and username = %s"""
+        query =  f"""SELECT id, username, duration, start_dt FROM mentorku.approval WHERE status = 2 and username = %s"""
         val = (username,)
         cursor.execute(query, val)
 
@@ -302,9 +302,9 @@ def get_approval(con, username=None):
     return data
 
 def check_args(args):
-    if(("" in args[1:]) or (None in args[1:])):
-        log.info(f"Checked arguments returned {False} from function name {check_args.__name__}")
-        return False
-    else:
+    if(("" in args[0:]) or (None in args[0:])):
         log.info(f"Checked arguments returned {True} from function name {check_args.__name__}")
         return True
+    else:
+        log.info(f"Checked arguments returned {False} from function name {check_args.__name__}")
+        return False
