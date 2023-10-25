@@ -166,7 +166,7 @@ def get_data(con, args):
             return 409
 
     cursor.execute(query, val)
-    log.info(f"Return data from database {get_data.__name__}")
+    log.info(f"Return data from database with row count: {cursor.rowcount}, from function {get_data.__name__}")
     return cursor
 
 def get_data_excel(con, args):
@@ -297,14 +297,17 @@ def get_approval(con, username=None):
         val = (username,)
         cursor.execute(query, val)
 
-    data = cursor.fetchall()
-    log.info(f"Return data from database from function name {get_approval.__name__}")
-    return data
+    log.info(f"Return data from database with rowcount: {cursor.rowcount}, from function name {get_approval.__name__}")
+    return cursor
 
 def check_args(args):
-    if(("" in args[0:]) or (None in args[0:])):
+    if(args):
+        if(("" in args[0:]) or (None in args[0:])):
+            log.info(f"Checked arguments returned {True} from function name {check_args.__name__}")
+            return True
+        else:
+            log.info(f"Checked arguments returned {False} from function name {check_args.__name__}")
+            return False
+    else:
         log.info(f"Checked arguments returned {True} from function name {check_args.__name__}")
         return True
-    else:
-        log.info(f"Checked arguments returned {False} from function name {check_args.__name__}")
-        return False

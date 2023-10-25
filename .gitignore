@@ -4,3 +4,4 @@
 *.xlsx
 *.log
 *.sh
+.vscode/settings.json

@@ -2,6 +2,7 @@ import os
 import random
 import re
 import string
+import time
 import telebot
 import datetime
 import pytz
@@ -19,8 +20,6 @@ from dateutil.relativedelta import *
 from dateutil.relativedelta import *
 from telebot.async_telebot import AsyncTeleBot
 from telebot.async_telebot import types
-from telebot.async_telebot import util
-from telebot.asyncio_storage import StateMemoryStorage
 from telebot.asyncio_handler_backends import State, StatesGroup
 
 class passwdState(StatesGroup):
@@ -91,7 +90,6 @@ async def signin(message):
     times = datetime.datetime.fromtimestamp(chat_time, local_timezone)
     room_type = message.chat.type
 
-    
     if(room_type == "private"):
         await bot.reply_to(message, "You called this bot from your personal chat room, please call it from appropiate group")
         log.warning("User called in from personal chat room")
@@ -298,10 +296,12 @@ async def leave_attendence(message):
         except Exception as e:
             await bot.reply_to(message, "Did you give any arguments ? leave <1-3>d")
             log.error(f"Invalid args. {repr(e)}")
+            return
         
         if(qry.check_args(args)):
             await bot.reply_to(message, "Did you give how many days you want to take on leave ?")
             log.error("Invalid args")
+            return
 
         dur = ''.join(re.findall("[0-9]", args[0]))
         dt = ''.join(re.findall(r"\b\d{2}/\d{2}/\d{4}\b", args[1]))
@@ -354,10 +354,12 @@ async def set_in_time(message):
                 except Exception as e:
                     await bot.reply_to(message, "Did you give any arguments ? set_in_time <username> <time hh:mm::ss>")
                     log.error(f"Invalid args. {repr(e)}")
+                    return
 
                 if(qry.check_args(args)):
                     await bot.reply_to(message, "Did you give what time the user should sign in ? Format: hh:mm:ss")
                     log.error(f"Wrong format or Null, input get {message.text}")
+                    return
                 
                 times = ''.join(args[1])
                 username = ''.join(args[0])
@@ -430,18 +432,18 @@ async def get_log(message):
     admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
     if(admin_stat):
         log.info("Opening log file")
-        with open("mentorku.log", 'r') as f:
-            last_lines = deque(f, 6)
+        try:
+            with open('mentorku.log', 'r', encoding='utf-8') as file:
+                text = file.readlines()[-10:]
 
-        lst_str = ''.join(last_lines)
-        log.info("Preparing log file strings")
-        chunks = []
-        for i in range(0, len(lst_str), 4000):
-            chunks.append(lst_str[i:i+4000])
+            chunk_size = 4
+            line_chunks = [text[i:i+chunk_size] for i in range (0, len(text), chunk_size)]
 
-        for chunk in chunks:
-            await bot.send_message(chat_id, chunk)
-
+            for chunk in line_chunks:
+                msg_txt = "".join(chunk)
+                bot.reply_to(message,msg_txt)
+        except Exception as e:
+            log.error(f"Invalid args. {repr(e)}")
         log.info(f"Sent logs info for {message.from_user.full_name}")
     else:
         await bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
@@ -450,7 +452,6 @@ async def get_log(message):
 @bot.message_handler(commands=['get_approval'])
 async def set_approval(message):
     user_id = message.from_user.id
-    chat_id = message.chat.id
     room_type = message.chat.type
 
     admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
@@ -466,13 +467,16 @@ async def set_approval(message):
             except Exception as e:
                 await bot.reply_to(message, "Did you give username who you want approv their leave ? Displaying all pending approval\nUsage: approval <username>")
                 log.error(f"Invalid args. {repr(e)}")
-            
-            if(qry.check_args(args)):    
-                ret = qry.get_approval(con=conn, username=args[0])
-                if ret:
-                    print(ret)
-                
+                return
 
+            if(not qry.check_args(args)):    
+                ret = qry.get_approval(con=conn, username=args[0])
+            else:
+                ret = qry.get_approval(con=conn)
+
+            result = table.from_db_cursor(ret)
+            await bot.reply_to(message, result)
+            ret.close()
 
 bot.add_custom_filter(asyncio_filters.StateFilter(bot))
 
