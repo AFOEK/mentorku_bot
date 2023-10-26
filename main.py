@@ -2,7 +2,6 @@ import os
 import random
 import re
 import string
-import time
 import telebot
 import datetime
 import pytz
@@ -13,7 +12,6 @@ import connector as db
 import inject as qry
 import prettytable as table
 
-from collections import deque
 from dotenv import load_dotenv 
 from telebot import asyncio_filters
 from dateutil.relativedelta import *
@@ -124,6 +122,7 @@ async def init(message):
     user_id = message.from_user.id
     chat_id = message.chat.id
     room_type = message.chat.type
+    room_name = message.chat.title
     
     if(room_type == "private"):
         await bot.reply_to(message, "You called this bot from your personal chat room, please call it from appropiate group")
@@ -140,6 +139,7 @@ async def init(message):
         status = member.status
         if(username != "" or username is not None):
             ret = qry.init_data(user_id = user_id, username = username, admin_status=status, real_name= names, chat_id = chat_id, con=conn)
+            qry.set_room(room_id=chat_id, room_name=room_name, con=conn)
         else:
             await bot.reply_to(message, f"User didn't set thier telegram username ! Please set the username before run this command !")
 
@@ -477,6 +477,23 @@ async def set_approval(message):
             result = table.from_db_cursor(ret)
             await bot.reply_to(message, result)
             ret.close()
+
+@bot.message_handler(commands=["init_channel"])
+async def init_channel(message):
+    room_type = message.chat.type
+    room_name = message.chat.title
+    user_id = message.from_user.id
+    chat_id = message.chat.id
+
+    admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
+    if(admin_stat):
+        if(room_type == "channel"):
+            ret = qry.set_room(room_id=chat_id, room_type=room_type, room_name=room_name, con=conn)
+            if(ret == 200):
+                bot.reply_to(message, f"Room have been set !")
+        else:
+            await bot.reply_to(message, "You called this bot from group or private chat. Please call it from an appropiate group ")
+            log.error("User called from inside a group or private")
 
 bot.add_custom_filter(asyncio_filters.StateFilter(bot))
 

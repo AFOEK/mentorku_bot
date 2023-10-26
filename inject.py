@@ -311,3 +311,11 @@ def check_args(args):
     else:
         log.info(f"Checked arguments returned {True} from function name {check_args.__name__}")
         return True
+    
+def set_room(room_id, room_name, room_type, con):
+    cursor = con.cursor()
+    query = f"""INSERT IGNORE INTO mentorku.room(room_id, room_name, type, timestamp) VALUES ({room_id}, {room_name}, {room_type}, now())"""
+    cursor.execute(query)
+    con.commit()
+    cursor.close()
+    return 200
