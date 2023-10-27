@@ -441,7 +441,7 @@ async def get_log(message):
 
             for chunk in line_chunks:
                 msg_txt = "".join(chunk)
-                bot.reply_to(message,msg_txt)
+                await bot.reply_to(message,msg_txt)
         except Exception as e:
             log.error(f"Invalid args. {repr(e)}")
         log.info(f"Sent logs info for {message.from_user.full_name}")
@@ -477,23 +477,32 @@ async def set_approval(message):
             result = table.from_db_cursor(ret)
             await bot.reply_to(message, result)
             ret.close()
+    else:
+        await bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
+        log.error("Wrong permission !")
 
-@bot.message_handler(commands=["init_channel"])
+@bot.channel_post_handler(commands=["init_room"])
 async def init_channel(message):
     room_type = message.chat.type
     room_name = message.chat.title
-    user_id = message.from_user.id
     chat_id = message.chat.id
 
-    admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
-    if(admin_stat):
+    if(message.from_user is None):
         if(room_type == "channel"):
             ret = qry.set_room(room_id=chat_id, room_type=room_type, room_name=room_name, con=conn)
             if(ret == 200):
-                bot.reply_to(message, f"Room have been set !")
+                await bot.delete_message(message_id=message.message_id, chat_id=chat_id)
+                await bot.reply_to(message, f"Room have been set !")
+                log.info("Room info has been set")
+            else:
+                bot.reply_to(message, "Failed to setup room info")
+                log.error("Error when setup room info")
         else:
             await bot.reply_to(message, "You called this bot from group or private chat. Please call it from an appropiate group ")
             log.error("User called from inside a group or private")
+    else:
+        await bot.reply_to(message, f"Permission denied ! Are you an admin or owner ?")
+        log.error("Wrong permission !")
 
 bot.add_custom_filter(asyncio_filters.StateFilter(bot))
 

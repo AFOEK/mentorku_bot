@@ -314,8 +314,10 @@ def check_args(args):
     
 def set_room(room_id, room_name, room_type, con):
     cursor = con.cursor()
-    query = f"""INSERT IGNORE INTO mentorku.room(room_id, room_name, type, timestamp) VALUES ({room_id}, {room_name}, {room_type}, now())"""
-    cursor.execute(query)
+    query = f"""INSERT IGNORE INTO mentorku.room (room_id, room_name, timestamp, room_type ) VALUES (%s, %s, now(), %s)"""
+    val = (room_id, room_name, room_type)
+    cursor.execute(query, val)
     con.commit()
     cursor.close()
+    log.info(f"Succesfully recorded room info to database, returned {200}, from function name {set_room.__name__}")
     return 200
