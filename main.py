@@ -7,6 +7,7 @@ import datetime
 import pytz
 import asyncio
 import hashlib
+import schedule
 import logging as log
 import connector as db
 import inject as qry
@@ -14,8 +15,9 @@ import prettytable as table
 
 from dotenv import load_dotenv 
 from telebot import asyncio_filters
+from telebot import types
 from dateutil.relativedelta import *
-from dateutil.relativedelta import *
+from telebot.types import InputMediaPhoto
 from telebot.async_telebot import AsyncTeleBot
 from telebot.async_telebot import types
 from telebot.asyncio_handler_backends import State, StatesGroup
@@ -139,7 +141,7 @@ async def init(message):
         status = member.status
         if(username != "" or username is not None):
             ret = qry.init_data(user_id = user_id, username = username, admin_status=status, real_name= names, chat_id = chat_id, con=conn)
-            qry.set_room(room_id=chat_id, room_name=room_name, con=conn)
+            qry.set_room(room_id=chat_id, room_name=room_name, room_type=room_type, con=conn)
         else:
             await bot.reply_to(message, f"User didn't set thier telegram username ! Please set the username before run this command !")
 
@@ -492,7 +494,7 @@ async def init_channel(message):
             ret = qry.set_room(room_id=chat_id, room_type=room_type, room_name=room_name, con=conn)
             if(ret == 200):
                 await bot.delete_message(message_id=message.message_id, chat_id=chat_id)
-                await bot.reply_to(message, f"Room have been set !")
+                await bot.send_message(chat_id=chat_id, text=f"Room have been set !")
                 log.info("Room info has been set")
             else:
                 bot.reply_to(message, "Failed to setup room info")
@@ -507,7 +509,16 @@ async def init_channel(message):
 bot.add_custom_filter(asyncio_filters.StateFilter(bot))
 
 async def main():
+    schedule.run_pending()
     await asyncio.gather(bot.infinity_polling())
+
+async def send_to_channel_18():
+    ret = qry.get_data_excel(con=conn, args="now")
+    chat_id = qry.get_channelid(con=conn, room_name="MentorKu - Dev")
+    if(ret == "today"):
+        await bot.send_document(chat_id=chat_id, document=telebot.types.InputFile('Mentorku attendance '+ ret +'.xlsx'))
+
+schedule.every().day.at("18:00").do(asyncio.run, send_to_channel_18)
 
 if __name__ == "__main__":
     try:

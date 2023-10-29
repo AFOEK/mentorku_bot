@@ -321,3 +321,15 @@ def set_room(room_id, room_name, room_type, con):
     cursor.close()
     log.info(f"Succesfully recorded room info to database, returned {200}, from function name {set_room.__name__}")
     return 200
+
+def get_channelid(con, room_name=None):
+    cursor = con.cursor()
+    if(room_name is not None):
+        query = f"SELECT room_id FROM mentorku.room WHERE room_type='channel' and room_name=%s"
+        val = (room_name,)
+        cursor.execute(query, val)
+        res = cursor.fetchone()
+        cursor.close()
+        return res[0]
+    else:
+        return 404
