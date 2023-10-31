@@ -17,7 +17,6 @@ from dotenv import load_dotenv
 from telebot import asyncio_filters
 from telebot import types
 from dateutil.relativedelta import *
-from telebot.types import InputMediaPhoto
 from telebot.async_telebot import AsyncTeleBot
 from telebot.async_telebot import types
 from telebot.asyncio_handler_backends import State, StatesGroup
@@ -159,21 +158,23 @@ async def init(message):
 @bot.message_handler(commands=['help'])
 async def help(message):
     await bot.reply_to(message, """
-/start or /init: Will read "user_name", "full_name", "user_id", and "member_status" of the user. This command just use once when new user joined to the group.
+/start or /init: Will read `user_name`, `full_name`, `user_id`, and `member_status` of the user. This command just use once when new user joined to the group.
 /in: Sign in, if user late it will give how many hours, minutes, and seconds the user already passed.
-/out: Sign out, if user didn't sign in the same day, that user cannot sign out.
+/out: Sign out.
 /help: Will show this exact message.
-/get_data {args}: Will sent attendence report based how many days, months, or year the user supplied. Possible options are 1d, 7d, 30d, 1w, 1m, 12m, and 1y.
-E.g: `/get_data 1d`, `/get_data 7d`, `/get_data 1m`, or `/get_data 1y`.
-/get_data_excel {args}: Will sent attendence report in Excel format based how many days, months, or year the user supplied. Possible options are 1d, 7d, 30d, 1w, 1m, 12m, and 1y.
-E.g: `/get_data_excel 1d`, `/get_data_excel 7d`, `/get_data_excel 1m`, or `/get_data_excel 1y`.
+/get_data {args}: Will sent attendence report based how many days, months, or year the user supplied. Possible options are now, 1d, 7d, 30d, 1w, 1m, 12m, and 1y. If no argument were given it will sent today attendence report.   
+E.g: `/get_data`, `/get_data 1d`, `/get_data 7d`, `/get_data 1m`, or `/get_data 1y`.
+/get_data_excel {args}: Will sent attendence report in Excel format based how many days, months, or year the user supplied. Possible options are now, 1d, 7d, 30d, 1w, 1m, 12m, and 1y. If no argument were given it will sent today attendence report.   
+E.g: `/get_data_excel`, `/get_data_excel 1d`, `/get_data_excel 7d`, `/get_data_excel 1m`, or `/get_data_excel 1y`.
 /sick: Sick leave.
-/leave {args0} {args1}: On leave status, it is require how many days and when the user wanted to take its leave. (Max: 3 days and didn't take any leave within one month span).
-E.g: `/leave 2d 20/07/2023`, `/leave 3d 18/07/2023`
+/leave {args}: On leave status, it is require how many days the user wanted to take its leave. This command will sent a notification to the channel and the leave must be accepted by the supervisior. (Max: 3 days and didn't take any leave within one month span).
+E.g: `/leave 2d`.
 /set_in_time {args0} {args1}: Will set user's sign in time, this will determine if the user late or on time. it's required telegram username and sign in time with format hh:mm:ss.
-E.g: `/set_in_time telegram_username 08:00:00`
-/get_log: Will print out last 5 lines of logs.
-/set_password: Will start series of command which user need to give his/her password""")
+E.g: `/set_in_time Xx_ment0rKu_Adm1n_xX 08:00:00`.
+/get_log` : Will fetch log data from `mentorku.log` to the chat.
+/set_password: Set passsword for accessing dashboard (Ongoing development). It will asked to fill a form which must be filled. For canceling use `/cancel`.
+/get_approval {args}: Will display all pending specific user approval to chat. If no argument given it will print all pending user approval. E.g: `/get_approval`, `/get_approval Xx_Ment0rKuAdm1n_xX`.
+/init_room: Will record room or channel id. Must be used after invited bot into the channel.""")
     log.info("Successfuly displaying help")
 
 @bot.message_handler(commands=['get_data'])
@@ -319,10 +320,13 @@ async def leave_attendence(message):
                     temp_id = str(message.from_user.username) + str(message.from_user.id) + ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(5))
                     id_str = hashlib.sha512(temp_id.encode()).hexdigest()
                     ret = qry.leave(id=id_str[:15], user_id=user_id_chat, username=username, dur=dur, start_date=days, con=conn)
+                    channel_id = qry.get_channelid(con=conn, room_name="MentorKu - Dev")
                     log.info(f"User on leave, with name {message.from_user.full_name}")
                     if(ret):
                         new_date = days + relativedelta(days=+int(dur))
                         await bot.reply_to(message, f"You requested leave for {dur} days, from {days.date()} until {new_date.date()}, already has been recorded please wait for approval by your supervisor")
+                        await bot.send_message(chat_id=channel_id, text=f"""{message.from_user.full_name} has requested a leave between {days.date()} till {new_date.date()} with ticket id: {id_str}.
+                                               For supervisor, you can accept or denied the leave using `/set_approval {id_str} yes|no|accept|denied|y|n|ok`, limit of the approval is H-7 after this leave request issued""")
                     else:
                         await bot.reply_to(message, "Did you give how many days you want to take on leave ?")
                         log.error("Invalid args")
@@ -429,8 +433,6 @@ async def store_data(message):
 @bot.message_handler(commands=['get_log'])
 async def get_log(message):
     user_id = message.from_user.id
-    chat_id = message.chat.id
-
     admin_stat = qry.get_admin_stat(userid=user_id, con=conn)
     if(admin_stat):
         log.info("Opening log file")

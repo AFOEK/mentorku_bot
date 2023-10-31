@@ -235,11 +235,17 @@ def sick(id_chat, msg_id, chat_tm, con):
 
 def get_leave_status(userid, con):
     cursor = con.cursor()
-
     query = f"SELECT * FROM mentorku.absensi WHERE MONTH(time_stamp) = MONTH(CURDATE()) AND status = 4 AND userid = {userid}"
     cursor.execute(query)
     cursor.fetchall()
-    if(cursor.rowcount >= 3):
+    absensi_rc = cursor.rowcount
+
+    query = f"SELECT * FROM mentorku.approval WHERE MONTH(time_stamp) = MONTH(CURDATE()) AND status = 2 AND userid = {userid}"
+    cursor.execute(query)
+    cursor.fetchall()
+    approval_rc = cursor.rowcount
+
+    if(absensi_rc >= 3 and approval_rc >= 2):
         log.info(f"Get leave status with return {False}, with function name {get_leave_status.__name__}")
         cursor.close()
         return False
@@ -332,4 +338,18 @@ def get_channelid(con, room_name=None):
         cursor.close()
         return res[0]
     else:
-        return 404
+        query = f"SELECT room_id FROM mentorku.room WHERE room_type='channel' and room_name=%s"
+        val = (room_name,)
+        cursor.execute(query, val)
+        res = cursor.fetchone()
+        cursor.close()
+        return res[0]
+    
+def set_approval(id, status, con):
+    cursor = con.cursor()
+    query = "UPDATE mentorku.approval SET status = %s WHERE id = %s and status = 2"
+    val = (status, id)
+    cursor.execute(query, val)
+    cursor.commit()
+    cursor.close()
+    return 200
