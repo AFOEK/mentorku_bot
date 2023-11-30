@@ -511,22 +511,32 @@ async def init_channel(message):
 bot.add_custom_filter(asyncio_filters.StateFilter(bot))
 
 async def main():
-    schedule.run_pending()
-    await asyncio.gather(bot.infinity_polling())
+    try:
+        while True:
+            schedule.run_pending()
+            await asyncio.sleep(1)
+    except Exception as e:
+        log.error(f"Error in main: {repr(e)}")
+    except KeyboardInterrupt as e:
+        log.error(repr(e))
+        log.info("Shutting down schedule jobs")
+        schedule.clear('send1800')
+        log.info("Closing database")
+        conn.close()
+        log.warning("Program shutdown")
+        log.warning("BYE !")
 
 async def send_to_channel_18():
+    i = 0
     ret = qry.get_data_excel(con=conn, args="now")
     chat_id = qry.get_channelid(con=conn, room_name="MentorKu - Dev")
+    print(i)
+    i += 1
     if(ret == "today"):
         await bot.send_document(chat_id=chat_id, document=telebot.types.InputFile('Mentorku attendance '+ ret +'.xlsx'))
 
-schedule.every().day.at("18:00").do(asyncio.run, send_to_channel_18)
-
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt as e:
-        log.error(repr(e))
-        conn.close()
-        log.info("Closing database")
-        log.warning("Program shutdown")
+    #schedule.every().day.at("18:00").do(asyncio.run, send_to_channel_18)
+    schedule.every(3).seconds.do(send_to_channel_18).tag('send1800')
+    asyncio.run(main())
+    
